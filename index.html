@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gestione Preventivi</title>
-    <!-- Supabase JS -->
+    <title>Gestione Preventivi Professionale</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS per Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -27,7 +24,6 @@
         .login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-dark); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-card { background: var(--bg-card); padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
         header { background: var(--bg-card); padding: 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-        .logo-area { display: flex; align-items: center; gap: 10px; }
         .logo-title { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
         .logo-title span { color: var(--primary); }
         .container { padding: 15px; max-width: 1200px; margin: 0 auto; }
@@ -39,7 +35,9 @@
         .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .card-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        @media(max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .form-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        @media(max-width: 600px) { .form-grid, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr; } }
         .form-group { display: flex; flex-direction: column; gap: 5px; position: relative; }
         .form-group.full { grid-column: 1 / -1; }
         label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
@@ -48,378 +46,355 @@
         .btn { background: var(--primary); color: var(--bg-dark); border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; text-transform: uppercase; }
         .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
         .btn-danger { background: var(--danger); color: white; }
+        .btn-warning-edit { background: var(--warning); color: var(--bg-dark); }
         .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; width: auto; }
-        .articolo-row { background: #222226; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--primary); position: relative; }
-        .articolo-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
-        .articolo-details { font-size: 12px; color: var(--text-muted); }
-        .item-list { display: flex; flex-direction: column; gap: 12px; }
+        .articolo-row { background: #222226; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); position: relative; }
+        .articolo-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 5px; padding-right: 80px; }
+        .articolo-details { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+        .articolo-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 10px; font-size: 12px; font-weight: 700; }
+        .action-edit { color: var(--primary); cursor: pointer; }
+        .action-delete { color: var(--danger); cursor: pointer; }
         .item-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; position: relative; }
         .item-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .item-name { font-weight: 600; font-size: 15px; }
-        .item-meta { font-size: 12px; color: var(--text-muted); }
-        .item-price { font-weight: 700; color: var(--primary); font-size: 16px; }
+        .item-meta { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+        .item-meta a { color: var(--primary); text-decoration: none; }
+        .item-price { font-weight: 700; color: var(--primary); font-size: 16px; text-align: right; }
+        .totale-box { background: #222226; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; border: 1px solid var(--border); }
+        .totale-box h3 { color: var(--primary); font-size: 20px; margin-top: 5px; }
+        .suggestions { background: #222226; border: 1px solid var(--border); border-radius: 0 0 8px 8px; max-height: 150px; overflow-y: auto; display: none; position: absolute; top: 100%; left: 0; z-index: 999; width: 100%; }
+        .suggestion-item { padding: 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); color: #fff; }
+        .suggestion-item:hover { background: var(--bg-card); }
+        .edit-banner { background: #3a2f00; color: var(--warning); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 15px; display: none; text-align: center; }
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-attesa { background: #3a2f00; color: var(--warning); }
         .badge-approvato { background: #003311; color: var(--success); }
         .badge-rifiutato { background: #330000; color: var(--danger); }
-        .totale-box { background: #222226; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; }
-        .totale-box h3 { color: var(--primary); font-size: 20px; }
-        .suggestions { background: #222226; border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; max-height: 150px; overflow-y: auto; display: none; position: absolute; top: 100%; left: 0; z-index: 999; width: 100%; }
-        .suggestion-item { padding: 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); color: #fff; }
-        .suggestion-item:hover { background: var(--bg-card); }
+        
         @media print {
-            body { background: white; color: black; padding: 0; }
-            header, .nav-tabs, .btn, .no-print, .login-screen, input, select, textarea, .totale-box button, .card-title, #form-preventivo-card { display: none !important; }
-            .panel { display: block !important; }
-            .card { border: none; background: white; color: black; padding: 0; }
-            .articolo-row { background: white; color: black; border: 1px solid #ccc; }
-            .item-list { display: none !important; }
-            #print-preview-area { display: block !important; color: black; background: white; padding: 20px; }
+            body { background: #ffffff !important; color: #1a1a1e !important; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            header, .nav-tabs, .btn, .login-screen, #form-preventivo-card, .edit-banner, .totale-box button, .item-list { display: none !important; }
+            #print-preview-area { display: block !important; background: #ffffff !important; width: 100%; min-height: 100vh; }
         }
         #print-preview-area { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- SCREEN LOGIN -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
-            <h2 style="margin-bottom: 20px; font-weight:700; text-transform: uppercase;">APPLICAZIONE<br><span style="color:var(--primary); font-size:14px;">PREVENTIVI & LISTINO</span></h2>
-            <input type="password" id="loginPassword" placeholder="Inserisci Password" style="text-align:center; margin-bottom:15px; letter-spacing:4px;">
+            <h2 style="margin-bottom: 20px; font-weight:700; text-transform: uppercase;">GESTIONE<br><span style="color:var(--primary); font-size:14px;">PREVENTIVI & LISTINO</span></h2>
+            <input type="password" id="loginPassword" placeholder="Password" style="text-align:center; margin-bottom:15px; letter-spacing:4px;">
             <button class="btn" onclick="checkLogin()">Entra</button>
         </div>
     </div>
 
-    <!-- HEADER -->
     <header>
-        <div class="logo-area">
-            <div class="logo-title">GESTIONE <span>PREVENTIVI</span></div>
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="esportaRegistroExcel()" style="width:auto;">Esporta Registro 📊</button>
+        <div class="logo-title">GESTIONE <span>PREVENTIVI</span></div>
+        <button class="btn btn-secondary btn-sm" onclick="esportaRegistroExcel()" style="width:auto;">Excel 📊</button>
     </header>
 
     <div class="container">
-        <!-- TABS NAV -->
         <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-nuovo')">+ Nuovo</button>
+            <button class="tab-btn active" onclick="switchTab('tab-nuovo')" id="btn-tab-nuovo">+ Nuovo</button>
             <button class="tab-btn" onclick="switchTab('tab-archivio')" id="btn-tab-archivio">Archivio</button>
-            <button class="tab-btn" onclick="switchTab('tab-catalogo')">Listino Prezzi</button>
+            <button class="tab-btn" onclick="switchTab('tab-catalogo')">Listino</button>
         </div>
 
-        <!-- TAB: NUOVO PREVENTIVO -->
         <div id="tab-nuovo" class="panel active">
+            <div id="bannerModifica" class="edit-banner">MODALITÀ MODIFICA ATTIVA</div>
             <div class="card" id="form-preventivo-card">
-                <div class="card-title">Anagrafica Preventivo</div>
+                <div class="card-title" id="titoloAnagrafica">Anagrafica Cliente</div>
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label>Num. Preventivo</label>
-                        <input type="text" id="prev_numero" placeholder="Es. 01/2026">
-                    </div>
-                    <div class="form-group">
-                        <label>Data</label>
-                        <input type="date" id="prev_data">
-                    </div>
-                    <div class="form-group full">
-                        <label>Cliente / Azienda</label>
-                        <input type="text" id="prev_cliente" placeholder="Nome Cliente o Ragione Sociale">
-                    </div>
+                    <div class="form-group"><label>Num. Preventivo</label><input type="text" id="prev_numero" placeholder="01/2026"></div>
+                    <div class="form-group"><label>Data</label><input type="date" id="prev_data"></div>
+                    <div class="form-group full"><label>Cliente / Azienda</label><input type="text" id="prev_cliente"></div>
+                    <div class="form-group"><label>Telefono</label><input type="tel" id="prev_telefono"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="prev_email"></div>
+                    <div class="form-group full"><label>Indirizzo</label><input type="text" id="prev_indirizzo"></div>
                 </div>
 
-                <div class="card-title" style="margin-top:25px; border-top: 1px solid var(--border); padding-top:15px;">
-                    Aggiungi Articolo / Prestazione
-                </div>
-                <div class="form-group">
-                    <label>Cerca nel listino o scrivi descrizione</label>
-                    <input type="text" id="art_descrizione" placeholder="Inserisci descrizione voce o cerca..." oninput="cercaNelCatalogo(this.value)">
-                    <div id="catalogo-suggestions" class="suggestions"></div>
-                </div>
-                <div class="form-grid" style="margin-top:10px;">
-                    <div class="form-group">
-                        <label>Prezzo Unitario (€)</label>
-                        <input type="number" step="0.01" id="art_prezzo" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>Quantità</label>
-                        <input type="number" step="0.1" id="art_qta" value="1">
+                <div class="card-title" style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">Aggiungi Voce</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Codice Articolo</label><input type="text" id="art_codice" placeholder="Es. RE-10493"></div>
+                    <div class="form-group"><label>Descrizione</label>
+                        <input type="text" id="art_descrizione" oninput="cercaNelCatalogo(this.value)" placeholder="Cerca o scrivi...">
+                        <div id="catalogo-suggestions" class="suggestions"></div>
                     </div>
                 </div>
-                <button class="btn btn-secondary" onclick="aggiungiArticoloInLista()" style="margin-top:10px; margin-bottom:20px;">+ Inserisci nel preventivo</button>
+                <div class="form-grid-4" style="margin-top:10px;">
+                    <div class="form-group"><label>Prezzo Netto (€)</label><input type="number" step="0.01" id="art_prezzo"></div>
+                    <div class="form-group"><label>Ricarico (%)</label><input type="number" id="art_ricarico" value="0"></div>
+                    <div class="form-group"><label>Quantità</label><input type="number" step="0.1" id="art_qta" value="1"></div>
+                    <div class="form-group"><label>U.M.</label>
+                        <select id="art_um">
+                            <option value="pz">pz (pezzi)</option>
+                            <option value="mt">mt (metri)</option>
+                            <option value="ora">ora (ore)</option>
+                            <option value="corpo">corpo (a corpo)</option>
+                            <option value="conf">conf (confezione)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="aggiungiArticoloInLista()">+ Aggiungi Voce</button>
 
-                <div class="card-title">Articoli Inseriti</div>
-                <div id="lista-articoli-correnti">
-                    <!-- Articoli inseriti al momento -->
-                </div>
+                <div class="card-title" style="margin-top:25px;">Lista Articoli</div>
+                <div id="lista-articoli-correnti"></div>
 
                 <div class="totale-box">
                     <p style="font-size:13px; color:var(--text-muted);">Totale Imponibile: <span id="lbl-imponibile">0.00</span> €</p>
-                    <h3>Totale Ivato (22%): <span id="lbl-totale">0.00</span> €</h3>
+                    <p style="font-size:13px; color:var(--text-muted);">IVA 22%: <span id="lbl-iva">0.00</span> €</p>
+                    <h3>TOTALE IVATO: <span id="lbl-totale">0.00</span> €</h3>
                 </div>
 
-                <div class="form-group full" style="margin-top:15px; margin-bottom:15px;">
-                    <label>Note / Condizioni di pagamento</label>
-                    <textarea id="prev_note" rows="2" placeholder="Note, termini di consegna, modalità di pagamento..."></textarea>
-                </div>
-
-                <button class="btn" onclick="salvaPreventivoCloud()">💾 Salva nel Cloud</button>
+                <div class="form-group full" style="margin-top:15px;"><label>Note</label><textarea id="prev_note" rows="2"></textarea></div>
+                <button class="btn" id="btnSalvaPreventivo" onclick="salvaPreventivoCloud()" style="margin-top:15px;">💾 Salva nel Cloud</button>
+                <button class="btn btn-secondary" id="btnAnnullaModifica" onclick="resetFormPreventivo()" style="margin-top:10px; display:none;">Annulla Modifica</button>
             </div>
         </div>
 
-        <!-- TAB: ARCHIVIO PREVENTIVI -->
         <div id="tab-archivio" class="panel">
-            <div class="item-list" id="lista-preventivi-cloud">
-                <!-- Caricati da Supabase -->
-            </div>
+            <div class="item-list" id="lista-preventivi-cloud"></div>
         </div>
 
-        <!-- TAB: LISTINO PREZZI SALVATI -->
         <div id="tab-catalogo" class="panel">
             <div class="card">
-                <div class="card-title">Salva nuova voce nel listino</div>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label>Descrizione Articolo o Servizio</label>
-                    <input type="text" id="cat_descrizione" placeholder="Es. Manodopera qualificata">
+                <div class="card-title">Salva nel listino</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Codice Articolo</label><input type="text" id="cat_codice" placeholder="Es. MET-9938"></div>
+                    <div class="form-group"><label>Descrizione</label><input type="text" id="cat_descrizione"></div>
                 </div>
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label>Prezzo (€)</label>
-                        <input type="number" step="0.01" id="cat_prezzo" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>Unità di misura</label>
+                    <div class="form-group"><label>Prezzo Base (€)</label><input type="number" step="0.01" id="cat_prezzo"></div>
+                    <div class="form-group"><label>U.M.</label>
                         <select id="cat_um">
-                            <option value="pz">A pezzo (pz)</option>
-                            <option value="m">Al metro (m)</option>
-                            <option value="ora">All'ora (ora)</option>
-                            <option value="corpo">A corpo</option>
+                            <option value="pz">pz (pezzi)</option>
+                            <option value="mt">mt (metri)</option>
+                            <option value="ora">ora (ore)</option>
+                            <option value="corpo">corpo (a corpo)</option>
+                            <option value="conf">conf (confezione)</option>
                         </select>
                     </div>
                 </div>
                 <button class="btn" onclick="salvaInCatalogoListino()" style="margin-top:10px;">Salva nel Listino</button>
             </div>
-
-            <div class="card-title">Listino Prezzi Memorizzato</div>
-            <div class="item-list" id="lista-catalogo-prodotti">
-                <!-- Prodotti nel catalogo -->
-            </div>
+            <div id="lista-catalogo-prodotti" class="item-list"></div>
         </div>
     </div>
 
-    <!-- AREA DI STAMPA/PDF NASCOSTA -->
     <div id="print-preview-area"></div>
 
     <script>
-        // --- INSERISCI QUI I TUOI DATI DI CONFIGURAZIONE ---
+        // CONFIGURAZIONE
         const SUPABASE_URL = "https://akyshoozwyxezvqvtncm.supabase.co";
         const SUPABASE_KEY = "sb_publishable_iYFqaixRwg08V60Aj2lc1g_BkDWK6II";
-        const APP_PASSWORD = "Eatsleepraverepeat1"; 
-        // ----------------------------------------------------
+        const APP_PASSWORD = "Eatsleepraverepeat1";
 
         let supabaseClient = null;
-        let articoliPreventivoCorrente = [];
-        let catalogoProdottiLocale = [];
+        let articlesCurrentQuote = [];
+        let localCatalogProducts = [];
+        let idQuoteBeingEdited = null;
 
         function checkLogin() {
-            const pass = document.getElementById('loginPassword').value;
-            if(pass === APP_PASSWORD) {
-                try {
-                    initSupabase();
-                } catch (err) {
-                    alert("Errore nell'avvio del database: " + err.message);
-                }
-            } else {
-                alert("Password errata!");
-            }
-        }
-
-        function initSupabase() {
-            if (!SUPABASE_URL || SUPABASE_URL.includes("INSERISCI_QUI")) {
-                alert("ATTENZIONE: Non hai modificato l'URL di Supabase nel codice sorgente.");
-                return;
-            }
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('prev_data').valueAsDate = new Date();
-            caricaPreventivi();
-            caricaCatalogo();
+            if(document.getElementById('loginPassword').value === APP_PASSWORD) {
+                document.getElementById('loginScreen').style.display = 'none';
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                document.getElementById('prev_data').valueAsDate = new Date();
+                caricaPreventivi();
+                caricaCatalogo();
+            } else alert("Password Errata");
         }
 
         function switchTab(tabId) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            if(event && event.currentTarget) event.currentTarget.classList.add('active');
-            if(tabId === 'tab-archivio') caricaPreventivi();
-            if(tabId === 'tab-catalogo') caricaCatalogo();
+            if(tabId === 'tab-nuovo') document.getElementById('btn-tab-nuovo').classList.add('active');
+            else if(tabId === 'tab-archivio') { document.getElementById('btn-tab-archivio').classList.add('active'); caricaPreventivi(); }
+            else document.querySelectorAll('.tab-btn')[2].classList.add('active');
         }
 
         async function salvaInCatalogoListino() {
+            const codice = document.getElementById('cat_codice').value.trim();
             const desc = document.getElementById('cat_descrizione').value.trim();
             const prezzo = parseFloat(document.getElementById('cat_prezzo').value);
-            const um = document.getElementById('cat_um').value;
-
-            if(!desc || isNaN(prezzo)) return alert("Compila descrizione e prezzo correttamente");
-
-            const { error } = await supabaseClient.from('catalogo_prodotti').insert([{ descrizione: desc, prezzo_unitario: prezzo, unita_misura: um }]);
-            if(error) return alert("Errore di salvataggio: " + error.message);
-
-            document.getElementById('cat_descrizione').value = '';
-            document.getElementById('cat_prezzo').value = '';
+            if(!desc || isNaN(prezzo)) return alert("Descrizione e Prezzo sono obbligatori");
+            
+            await supabaseClient.from('catalogo_prodotti').insert([{ 
+                codice: codice || null, 
+                descrizione: desc, 
+                prezzo_unitario: prezzo, 
+                unita_misura: document.getElementById('cat_um').value 
+            }]);
+            
+            document.getElementById('cat_codice').value = ''; document.getElementById('cat_descrizione').value = ''; document.getElementById('cat_prezzo').value = '';
             caricaCatalogo();
-            alert("Voce salvata nel listino!");
         }
 
         async function caricaCatalogo() {
-            const { data, error } = await supabaseClient.from('catalogo_prodotti').select('*').order('descrizione', { ascending: true });
-            if(!error && data) {
-                catalogoProdottiLocale = data;
-                const container = document.getElementById('lista-catalogo-prodotti');
-                container.innerHTML = data.map(p => `
-                    <div class="item-card">
-                        <div class="item-row">
-                            <span class="item-name">${p.descrizione}</span>
-                            <span class="item-price">${p.prezzo_unitario.toFixed(2)} € <span style="font-size:11px; color:var(--text-muted);">/${p.unita_misura}</span></span>
-                        </div>
-                        <button class="btn btn-danger btn-sm" onclick="eliminaDaCatalogo(${p.id})">Elimina</button>
+            const { data } = await supabaseClient.from('catalogo_prodotti').select('*').order('descrizione');
+            localCatalogProducts = data || [];
+            document.getElementById('lista-catalogo-prodotti').innerHTML = localCatalogProducts.map(p => `
+                <div class="item-card">
+                    <div class="item-row">
+                        <span class="item-name">${p.codice ? `[${p.codice}] ` : ''}${p.descrizione}</span>
+                        <span class="item-price">${p.prezzo_unitario.toFixed(2)} € / ${p.unita_misura || 'pz'}</span>
                     </div>
-                `).join('');
-            }
-        }
-
-        async function eliminaDaCatalogo(id) {
-            if(confirm("Eliminare questa voce dal listino?")) {
-                await supabaseClient.from('catalogo_prodotti').delete().eq('id', id);
-                caricaCatalogo();
-            }
-        }
-
-        function cercaNelCatalogo(valore) {
-            const suggestionsBox = document.getElementById('catalogo-suggestions');
-            if(!valore) { suggestionsBox.style.display = 'none'; return; }
-            
-            const filtrati = catalogoProdottiLocale.filter(p => p.descrizione.toLowerCase().includes(valore.toLowerCase()));
-            if(filtrati.length === 0) { suggestionsBox.style.display = 'none'; return; }
-
-            suggestionsBox.innerHTML = filtrati.map(p => `
-                <div class="suggestion-item" onclick="selezionaProdottoCatalogo('${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario})">
-                    ${p.descrizione} - <strong>${p.prezzo_unitario.toFixed(2)} €</strong>
+                    <button class="btn btn-danger btn-sm" onclick="eliminaDaCatalogo(${p.id})">Elimina</button>
                 </div>
             `).join('');
-            suggestionsBox.style.display = 'block';
         }
 
-        function selezionaProdottoCatalogo(desc, prezzo) {
-            document.getElementById('art_descrizione').value = desc;
-            document.getElementById('art_prezzo').value = prezzo;
+        function cercaNelCatalogo(v) {
+            const box = document.getElementById('catalogo-suggestions');
+            if(!v) { box.style.display = 'none'; return; }
+            const fil = localCatalogProducts.filter(p => 
+                p.descrizione.toLowerCase().includes(v.toLowerCase()) || 
+                (p.codice && p.codice.toLowerCase().includes(v.toLowerCase()))
+            );
+            box.innerHTML = fil.map(p => `
+                <div class="suggestion-item" onclick="selCat('${p.codice ? p.codice.replace(/'/g, "\\'") : ''}', '${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario}, '${p.unita_misura || 'pz'}')">
+                    ${p.codice ? `<b>[${p.codice}]</b> ` : ''}${p.descrizione} - ${p.prezzo_unitario.toFixed(2)}€ (${p.unita_misura || 'pz'})
+                </div>
+            `).join('');
+            box.style.display = fil.length ? 'block' : 'none';
+        }
+
+        function selCat(c, d, p, um) {
+            document.getElementById('art_codice').value = c;
+            document.getElementById('art_descrizione').value = d; 
+            document.getElementById('art_prezzo').value = p;
+            document.getElementById('art_ricarico').value = 0; 
+            document.getElementById('art_um').value = um;
             document.getElementById('catalogo-suggestions').style.display = 'none';
         }
 
         function aggiungiArticoloInLista() {
+            const cod = document.getElementById('art_codice').value.trim();
             const desc = document.getElementById('art_descrizione').value.trim();
-            const prezzo = parseFloat(document.getElementById('art_prezzo').value);
+            const base = parseFloat(document.getElementById('art_prezzo').value);
+            const ricarico = parseFloat(document.getElementById('art_ricarico').value) || 0;
             const qta = parseFloat(document.getElementById('art_qta').value);
+            const um = document.getElementById('art_um').value;
+            if(!desc || isNaN(base)) return alert("Dati articolo incompleti");
 
-            if(!desc || isNaN(prezzo) || isNaN(qta)) return alert("Compila i dettagli della voce");
-
-            articoliPreventivoCorrente.push({ descrizione: desc, prezzo_unitario: prezzo, quantita: qta, totale: prezzo * qta });
-            
-            document.getElementById('art_descrizione').value = '';
-            document.getElementById('art_prezzo').value = '';
-            document.getElementById('art_qta').value = '1';
-            
-            aggiornaInterfacciaArticoli();
-        }
-
-        function rimuoviArticoloDaLista(index) {
-            articoliPreventivoCorrente.splice(index, 1);
+            const unitarioNetto = base * (1 + (ricarico / 100));
+            articlesCurrentQuote.push({ 
+                codice: cod || '',
+                descrizione: desc + (ricarico > 0 ? ` (+${ricarico}% ric.)` : ''),
+                prezzo_unitario_netto: unitarioNetto,
+                quantita: qta,
+                unita_misura: um,
+                totale_netto: unitarioNetto * qta,
+                totale_ivato: (unitarioNetto * qta) * 1.22
+            });
+            document.getElementById('art_codice').value = ''; document.getElementById('art_descrizione').value = ''; document.getElementById('art_prezzo').value = ''; document.getElementById('art_ricarico').value = 0; document.getElementById('art_um').value = 'pz';
             aggiornaInterfacciaArticoli();
         }
 
         function aggiornaInterfacciaArticoli() {
             const container = document.getElementById('lista-articoli-correnti');
-            let imponibile = 0;
-
-            container.innerHTML = articoliPreventivoCorrente.map((art, idx) => {
-                imponibile += art.totale;
+            let imp = 0;
+            container.innerHTML = articlesCurrentQuote.map((a, i) => {
+                const pNetto = a.prezzo_unitario_netto || a.prezzo_unitario || 0;
+                const tNetto = a.totale_netto || (pNetto * a.quantita);
+                const tIvato = a.totale_ivato || (tNetto * 1.22);
+                const um = a.unita_misura || 'pz';
+                
+                imp += tNetto;
                 return `
-                    <div class="articolo-row">
-                        <div class="articolo-header">
-                            <span>${art.descrizione}</span>
-                            <span style="color:var(--primary); font-weight:700;">${art.totale.toFixed(2)} €</span>
-                        </div>
-                        <div class="articolo-details">
-                            ${art.quantita} x ${art.prezzo_unitario.toFixed(2)} €
-                        </div>
-                        <span onclick="rimuoviArticoloDaLista(${idx})" style="position:absolute; top:10px; right:10px; color:var(--danger); font-size:12px; cursor:pointer; font-weight:700;">X</span>
+                <div class="articolo-row">
+                    <div class="articolo-header">
+                        <span>${a.codice ? `<b>[${a.codice}]</b> ` : ''}${a.descrizione}</span>
+                        <span style="color:var(--primary);">${tIvato.toFixed(2)} € (iva incl.)</span>
                     </div>
-                `;
+                    <div class="articolo-details">
+                        Qtà: ${a.quantita} ${um} | Netto Un.: ${pNetto.toFixed(2)}€ / ${um} | Ivato Un.: ${(pNetto * 1.22).toFixed(2)}€<br>
+                        <b>Totale Netto Riga: ${tNetto.toFixed(2)} €</b>
+                    </div>
+                    <div class="articolo-actions"><span class="action-edit" onclick="modArt(${i})">Mod ✏️</span><span class="action-delete" onclick="remArt(${i})">X</span></div>
+                </div>`;
             }).join('');
+            document.getElementById('lbl-imponibile').innerText = imp.toFixed(2);
+            document.getElementById('lbl-iva').innerText = (imp * 0.22).toFixed(2);
+            document.getElementById('lbl-totale').innerText = (imp * 1.22).toFixed(2);
+        }
 
-            const ivato = imponibile * 1.22;
-            document.getElementById('lbl-imponibile').innerText = imponibile.toFixed(2);
-            document.getElementById('lbl-totale').innerText = ivato.toFixed(2);
+        function remArt(i) { articlesCurrentQuote.splice(i, 1); aggiornaInterfacciaArticoli(); }
+        
+        function modArt(i) { 
+            const a = articlesCurrentQuote[i];
+            document.getElementById('art_codice').value = a.codice || '';
+            
+            let cleanDesc = a.descrizione;
+            if(cleanDesc.includes(" (+")) {
+                cleanDesc = cleanDesc.split(" (+")[0];
+            }
+            document.getElementById('art_descrizione').value = cleanDesc; 
+            document.getElementById('art_prezzo').value = a.prezzo_unitario_netto || a.prezzo_unitario || 0; 
+            document.getElementById('art_ricarico').value = 0; 
+            document.getElementById('art_qta').value = a.quantita;
+            document.getElementById('art_um').value = a.unita_misura || 'pz';
+            remArt(i);
+            document.getElementById('art_descrizione').focus();
         }
 
         async function salvaPreventivoCloud() {
-            const num = document.getElementById('prev_numero').value.trim();
-            const data = document.getElementById('prev_data').value;
-            const cliente = document.getElementById('prev_cliente').value.trim();
-            const note = document.getElementById('prev_note').value;
-            const imponibile = parseFloat(document.getElementById('lbl-imponibile').innerText);
-            const ivato = parseFloat(document.getElementById('lbl-totale').innerText);
-
-            if(!num || !cliente || articoliPreventivoCorrente.length === 0) {
-                return alert("Inserisci Numero, Cliente e almeno un elemento nel preventivo!");
-            }
-
             const payload = {
-                numero_preventivo: num,
-                data_preventivo: data,
-                cliente: cliente,
-                note: note,
-                articoli: articoliPreventivoCorrente,
-                totale_imponibile: imponibile,
-                totale_ivato: ivato,
+                numero_preventivo: document.getElementById('prev_numero').value,
+                data_preventivo: document.getElementById('prev_data').value,
+                cliente: document.getElementById('prev_cliente').value,
+                telefono: document.getElementById('prev_telefono').value,
+                email: document.getElementById('prev_email').value,
+                indirizzo: document.getElementById('prev_indirizzo').value,
+                articoli: articlesCurrentQuote,
+                totale_imponibile: parseFloat(document.getElementById('lbl-imponibile').innerText),
+                totale_ivato: parseFloat(document.getElementById('lbl-totale').innerText),
+                note: document.getElementById('prev_note').value,
                 stato: 'In attesa'
             };
+            if(!payload.numero_preventivo || !payload.cliente) return alert("Numero e Cliente obbligatori");
 
-            const { error } = await supabaseClient.from('preventivi').insert([payload]);
-            if(error) return alert("Errore nel salvataggio Cloud: " + error.message);
+            if(idQuoteBeingEdited) await supabaseClient.from('preventivi').update(payload).eq('id', idQuoteBeingEdited);
+            else await supabaseClient.from('preventivi').insert([payload]);
+            
+            resetFormPreventivo(); switchTab('tab-archivio');
+        }
 
-            alert("Preventivo salvato correttamente!");
-            document.getElementById('prev_numero').value = '';
-            document.getElementById('prev_cliente').value = '';
-            document.getElementById('prev_note').value = '';
-            articoliPreventivoCorrente = [];
+        function resetFormPreventivo() {
+            idQuoteBeingEdited = null; articlesCurrentQuote = [];
+            document.querySelectorAll('#tab-nuovo input, #tab-nuovo textarea').forEach(i => i.value = '');
+            document.getElementById('prev_data').valueAsDate = new Date();
+            document.getElementById('bannerModifica').style.display = 'none';
+            document.getElementById('titoloAnagrafica').innerText = "Anagrafica Cliente";
+            document.getElementById('btnSalvaPreventivo').innerText = "💾 Salva nel Cloud";
+            document.getElementById('btnSalvaPreventivo').className = "btn";
+            document.getElementById('btnAnnullaModifica').style.display = 'none';
             aggiornaInterfacciaArticoli();
-            switchTab('tab-archivio');
         }
 
         async function caricaPreventivi() {
-            const { data, error } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
-            if(!error && data) {
-                const container = document.getElementById('lista-preventivi-cloud');
-                container.innerHTML = data.map(p => `
-                    <div class="item-card">
-                        <div class="item-row">
-                            <span class="item-name">Prev. N° ${p.numero_preventivo}</span>
-                            <span class="badge badge-${p.stato.toLowerCase().replace(" ", "-")}">${p.stato}</span>
-                        </div>
-                        <div class="item-row" style="margin-bottom:15px;">
-                            <span class="item-meta">Cliente: <strong>${p.cliente}</strong><br>Data: ${new Date(p.data_preventivo).toLocaleDateString('it-IT')}</span>
-                            <span class="item-price">${p.totale_ivato.toFixed(2)} € <br><span style="font-size:11px; color:var(--text-muted); font-weight:400;">(iva incl.)</span></span>
-                        </div>
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:6px;">
-                            <select onchange="cambiaStatoPreventivo(${p.id}, this.value)" style="padding:6px; font-size:12px;">
-                                <option value="In attesa" ${p.stato === 'In attesa' ? 'selected' : ''}>In attesa</option>
-                                <option value="Approvato" ${p.stato === 'Approvato' ? 'selected' : ''}>Approvato</option>
-                                <option value="Rifiutato" ${p.stato === 'Rifiutato' ? 'selected' : ''}>Rifiutato</option>
-                            </select>
-                            <button class="btn btn-secondary btn-sm" onclick='generaPDFPreventivo(${JSON.stringify(p).replace(/'/g, "&apos;")})'>PDF 📄</button>
-                            <button class="btn btn-danger btn-sm" onclick="eliminaPreventivo(${p.id})">Elimina</button>
-                        </div>
+            const { data } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
+            document.getElementById('lista-preventivi-cloud').innerHTML = (data || []).map(p => {
+                const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(p))));
+                return `
+                <div class="item-card">
+                    <div class="item-row"><span class="item-name">N° ${p.numero_preventivo} - ${p.cliente}</span><span class="badge badge-${p.stato.toLowerCase().replace(" ","-")}">${p.stato}</span></div>
+                    <div class="item-row"><span class="item-meta">Data: ${p.data_preventivo}<br>Netto: ${p.totale_imponibile.toFixed(2)}€</span><span class="item-price">Tot: ${p.totale_ivato.toFixed(2)}€</span></div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:5px; margin-top:10px; margin-bottom:5px;">
+                        <button class="btn btn-secondary btn-sm" onclick="startMod('${b64}')">Modifica ✏️</button>
+                        <select onchange="cambiaStatoPreventivo(${p.id}, this.value)" style="padding:5px; font-size:11px; background:#222226; border:1px solid var(--border); color:#fff; border-radius:6px;">
+                            <option value="In attesa" ${p.stato === 'In attesa' ? 'selected' : ''}>In attesa</option>
+                            <option value="Approvato" ${p.stato === 'Approvato' ? 'selected' : ''}>Approvato</option>
+                            <option value="Rifiutato" ${p.stato === 'Rifiutato' ? 'selected' : ''}>Rifiutato</option>
+                        </select>
                     </div>
-                `).join('');
-            }
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:5px; margin-top:0;">
+                        <button class="btn btn-secondary btn-sm" onclick="printPdf('${b64}')">PDF 📄</button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminaPreventivo(${p.id})">Elimina 🗑️</button>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         async function cambiaStatoPreventivo(id, nuovoStato) {
@@ -427,89 +402,202 @@
             caricaPreventivi();
         }
 
-        async function eliminaPreventivo(id) {
-            if(confirm("Sei sicuro di voler eliminare definitivamente questo preventivo?")) {
-                await supabaseClient.from('preventivi').delete().eq('id', id);
-                caricaPreventivi();
-            }
+        window.startMod = function(s) {
+            const p = JSON.parse(decodeURIComponent(escape(atob(s))));
+            idQuoteBeingEdited = p.id;
+            document.getElementById('prev_numero').value = p.numero_preventivo;
+            document.getElementById('prev_data').value = p.data_preventivo;
+            document.getElementById('prev_cliente').value = p.cliente;
+            document.getElementById('prev_telefono').value = p.telefono || '';
+            document.getElementById('prev_email').value = p.email || '';
+            document.getElementById('prev_indirizzo').value = p.indirizzo || '';
+            document.getElementById('prev_note').value = p.note || '';
+            articlesCurrentQuote = p.articoli || [];
+            
+            document.getElementById('bannerModifica').style.display = 'block';
+            document.getElementById('titoloAnagrafica').innerText = "Modifica Preventivo Esistente";
+            document.getElementById('btnSalvaPreventivo').innerText = "Aggiorna 🔄";
+            document.getElementById('btnSalvaPreventivo').className = "btn btn-warning-edit";
+            document.getElementById('btnAnnullaModifica').style.display = 'block';
+            
+            aggiornaInterfacciaArticoli(); 
+            switchTab('tab-nuovo');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function generaPDFPreventivo(p) {
-            const areaStampa = document.getElementById('print-preview-area');
-            let tabellaArticoli = p.articoli.map(a => `
-                <tr>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${a.descrizione}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${a.quantita}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${a.prezzo_unitario.toFixed(2)} €</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${a.totale.toFixed(2)} €</td>
-                </tr>
-            `).join('');
+        window.printPdf = function(s) {
+            const p = JSON.parse(decodeURIComponent(escape(atob(s))));
+            const rows = (p.articoli || []).map(a => {
+                const pNetto = a.prezzo_unitario_netto || a.prezzo_unitario || 0;
+                const tIvato = a.totale_ivato || (pNetto * a.quantita * 1.22);
+                const um = a.unita_misura || 'pz';
+                
+                let descrizioneCliente = a.descrizione;
+                if(descrizioneCliente.includes(" (+")) {
+                    descrizioneCliente = descrizioneCliente.split(" (+")[0];
+                }
 
-            areaStampa.innerHTML = `
-                <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; padding:20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #111; padding-bottom: 20px; margin-bottom:30px;">
+                return `
+                <tr>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; color:#1a1a1e;">
+                        ${a.codice ? `<span style="color:#4a5568; font-family:monospace; display:block; font-size:11px; margin-bottom:2px; font-weight:600;">Cod. ${a.codice}</span>` : ''}
+                        <b>${descrizioneCliente}</b>
+                    </td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#4a5568;">${a.quantita} ${um}</td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:right; color:#4a5568;">${pNetto.toFixed(2)} €</td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#4a5568;">22%</td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:right; color:#1a1a1e;"><b>${tIvato.toFixed(2)} €</b></td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('print-preview-area').innerHTML = `
+                <div style="padding:40px 30px; background:#ffffff; color:#1a1a1e; line-height:1.5; min-height:100vh; font-family:'Montserrat', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <div style="display:flex; justify-content:space-between; border-bottom:3px solid #1a1a1e; padding-bottom:15px; margin-bottom:25px;">
                         <div>
-                            <h1 style="margin: 0; color:#111; font-size:24px; text-transform:uppercase; letter-spacing:1px;">PREVENTIVO</h1>
-                        </div>
-                        <div style="text-align: right;">
-                            <p style="margin:0; font-weight: bold;">Documento N° ${p.numero_preventivo}</p>
-                            <p style="margin:2px 0 0 0; font-size:13px;">Data emissione: ${new Date(p.data_preventivo).toLocaleDateString('it-IT')}</p>
+                            <h1 style="font-size:24px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#1a1a1e;">PREVENTIVO</h1>
+                            <p style="color:#4a5568; margin-top:4px;">N° <span style="color:#1a1a1e; font-weight:700;">${p.numero_preventivo}</span> del ${p.data_preventivo}</p>
                         </div>
                     </div>
-                    <div style="margin-bottom: 40px; background:#f9f9f9; padding:15px; border-radius:6px; border-left:4px solid #111;">
-                        <p style="margin:0; font-size:11px; text-transform:uppercase; color:#888; font-weight:bold;">Spett.le Cliente</p>
-                        <p style="margin:5px 0 0 0; font-size:16px; font-weight:bold; color:#111;">${p.cliente}</p>
+                    
+                    <div style="margin-bottom:35px; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
+                        <p style="font-size:11px; color:#4a5568; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Spett.le Cliente / Azienda</p>
+                        <p style="font-size:16px; font-weight:600; color:#1a1a1e; margin-bottom:4px;">${p.cliente}</p>
+                        <p style="color:#4a5568; font-size:13px; line-height:1.4;">
+                            ${p.indirizzo ? `📍 ${p.indirizzo}<br>` : ''}
+                            ${p.telefono ? `📞 ${p.telefono} ` : ''} ${p.email ? `✉️ ${p.email}` : ''}
+                        </p>
                     </div>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:35px; font-size:13px;">
                         <thead>
-                            <tr style="background: #1a1a1e; color: white;">
-                                <th style="padding: 10px; text-align: left; font-size:13px;">Descrizione Descrizione Voce / Prestazione</th>
-                                <th style="padding: 10px; text-align: center; font-size:13px; width:80px;">Q.tà</th>
-                                <th style="padding: 10px; text-align: right; font-size:13px; width:100px;">Prezzo Un.</th>
-                                <th style="padding: 10px; text-align: right; font-size:13px; width:100px;">Totale</th>
+                            <tr style="background:#f8fafc; border-bottom:2px solid #1a1a1e;">
+                                <th style="padding:12px 8px; text-align:left; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700;">Descrizione del Servizio</th>
+                                <th style="padding:12px 8px; text-align:center; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:70px;">Qtà</th>
+                                <th style="padding:12px 8px; text-align:right; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:100px;">Prezzo Un.</th>
+                                <th style="padding:12px 8px; text-align:center; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:60px;">IVA</th>
+                                <th style="padding:12px 8px; text-align:right; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:110px;">Totale</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${tabellaArticoli}
-                        </tbody>
+                        <tbody>${rows}</tbody>
                     </table>
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
-                        <div style="width: 250px; background:#f9f9f9; padding:15px; border-radius:6px; text-align:right;">
-                            <p style="margin:0; font-size:13px;">Imponibile: <strong>${p.totale_imponibile.toFixed(2)} €</strong></p>
-                            <p style="margin:5px 0 0 0; font-size:13px; border-bottom:1px solid #ddd; padding-bottom:5px;">IVA (22%): <strong>${(p.totale_ivato - p.totale_imponibile).toFixed(2)} €</strong></p>
-                            <h3 style="margin:10px 0 0 0; color:#111; font-size:18px;">TOTALE: <span>${p.totale_ivato.toFixed(2)} €</span></h3>
+
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:35px;">
+                        <div style="width:280px; text-align:right; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <p style="color:#4a5568; font-size:13px; margin-bottom:6px;">Totale Imponibile: <span style="color:#1a1a1e; font-weight:600;">${p.totale_imponibile.toFixed(2)} €</span></p>
+                            <p style="color:#4a5568; font-size:13px; margin-bottom:12px;">IVA 22%: <span style="color:#1a1a1e; font-weight:600;">${(p.totale_ivato - p.totale_imponibile).toFixed(2)} €</span></p>
+                            <div style="border-top:2px solid #1a1a1e; padding-top:12px;">
+                                <h2 style="font-size:13px; color:#4a5568; font-weight:700; text-transform:uppercase; margin-bottom:2px;">Totale dovuto</h2>
+                                <h2 style="font-size:24px; color:#1a1a1e; font-weight:700;"><span style="border-bottom:3px solid #ccff00; padding-bottom:2px;">${p.totale_ivato.toFixed(2)} €</span></h2>
+                            </div>
                         </div>
                     </div>
+
                     ${p.note ? `
-                    <div style="margin-top: 30px; border-top:1px solid #eee; padding-top:15px;">
-                        <p style="margin:0 0 5px 0; font-size:12px; font-weight:bold; color:#666;">Note e condizioni operative:</p>
-                        <p style="margin:0; font-size:12px; color:#555; white-space: pre-wrap;">${p.note}</p>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
+                    <div style="background:#f8fafc; padding:15px; border-radius:8px; border-left:4px solid #1a1a1e; font-size:13px; border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
+                        <b style="color:#1a1a1e; text-transform:uppercase; font-size:11px; display:block; margin-bottom:4px;">Note e Condizioni:</b>
+                        <span style="color:#4a5568; white-space: pre-wrap;">${p.note}</span>
+                    </div>` : ''}
+                </div>`;
             window.print();
         }
 
+        async function eliminaPreventivo(id) { 
+            if(confirm("Sei sicuro di voler eliminare definitivamento questo preventivo?")) { 
+                await supabaseClient.from('preventivi').delete().eq('id', id); 
+                caricaPreventivi(); 
+            } 
+        }
+        
+        async function eliminaDaCatalogo(id) { if(confirm("Eliminare dal listino?")) { await supabaseClient.from('catalogo_prodotti').delete().eq('id', id); caricaCatalog(); } }
+
+        // FUNZIONE DI ESPORTAZIONE EXCEL CON FORMULE CORRETTE (SEPARATORE A VIRGOLA PER COMPATIBILITÀ INTERNA)
         async function esportaRegistroExcel() {
-            const { data, error } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
-            if(error || !data) return alert("Errore nel recupero dati per l'esportazione");
+            const { data } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
+            
+            if (!data || data.length === 0) {
+                alert("Nessun dato da esportare nell'elenco!");
+                return;
+            }
 
-            const righeExcel = data.map(p => ({
-                "Num. Preventivo": p.numero_preventivo,
-                "Data": new Date(p.data_preventivo).toLocaleDateString('it-IT'),
-                "Cliente": p.cliente,
-                "Imponibile (€)": p.totale_imponibile,
-                "Totale Ivato (€)": p.totale_ivato,
-                "Stato": p.stato,
-                "Note": p.note
-            }));
+            // Calcoliamo le righe dinamiche per le formule
+            const rigaInizioDati = 6; 
+            const rigaFineDati = data.length + 5; 
 
-            const worksheet = XLSX.utils.json_to_sheet(righeExcel);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Registro");
-            worksheet['!cols'] = [{wch: 15}, {wch: 12}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 40}];
-            XLSX.writeFile(workbook, `Registro_Preventivi.xlsx`);
+            // Prepariamo la matrice. NOTA: Usiamo la virgola ',' dentro COUNTIF perché l'interprete xlsx ragiona in inglese
+            const matriceDati = [
+                ["REGISTRO AZIENDALE PREVENTIVI", "", "", "", "", "", ""],
+                ["Generato in data:", new Date().toLocaleDateString('it-IT'), "", "TASSO DI CONVERSIONE:", { f: `COUNTIF(G${rigaInizioDati}:G${rigaFineDati},"Approvato")/COUNTA(G${rigaInizioDati}:G${rigaFineDati})` }, "", ""],
+                [], 
+                [], 
+                ["NUM. PREVENTIVO", "DATA", "CLIENTE", "IMPONIBILE", "IVA 22%", "TOTALE IVATO", "STATO"]
+            ];
+
+            // Inseriamo i dati del database
+            data.forEach(p => {
+                const imponibile = p.totale_imponibile || 0;
+                const ivato = p.totale_ivato || 0;
+                const iva = ivato - imponibile;
+
+                matriceDati.push([
+                    p.numero_preventivo,
+                    p.data_preventivo,
+                    p.cliente,
+                    imponibile,
+                    iva,
+                    ivato,
+                    p.stato
+                ]);
+            });
+
+            // Riga finale con le formule SUM dei totali (anche qui usiamo i due punti per il range e la sintassi pulita)
+            matriceDati.push([
+                "TOTALE GENERALE",
+                "",
+                "",
+                { f: `SUM(D${rigaInizioDati}:D${rigaFineDati})` },
+                { f: `SUM(E${rigaInizioDati}:E${rigaFineDati})` },
+                { f: `SUM(F${rigaInizioDati}:F${rigaFineDati})` },
+                ""
+            ]);
+
+            const libroCalcolo = XLSX.utils.book_new();
+            const foglioRegistro = XLSX.utils.aoa_to_sheet(matriceDati);
+
+            // Applichiamo i formati valuta (€) e percentuale (%)
+            const rangeFoglio = XLSX.utils.decode_range(foglioRegistro['!ref']);
+            for (let R = rangeFoglio.s.r; R <= rangeFoglio.e.r; ++R) {
+                for (let C = rangeFoglio.s.c; C <= rangeFoglio.e.c; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!foglioRegistro[cellRef]) continue;
+
+                    // Formattiamo correttamente la cella della percentuale in alto (Riga 2, Colonna E)
+                    if (R === 1 && C === 4) {
+                        foglioRegistro[cellRef].z = '0.0%';
+                    }
+
+                    // Formattiamo le colonne dei prezzi (D, E, F)
+                    if (R >= (rigaInizioDati - 1) && (C === 3 || C === 4 || C === 5)) {
+                        if (typeof foglioRegistro[cellRef].f === 'undefined') {
+                            foglioRegistro[cellRef].t = 'n';
+                        }
+                        foglioRegistro[cellRef].z = '"€ "#,##0.00';
+                    }
+                }
+            }
+
+            // Ottimizziamo la larghezza delle colonne
+            foglioRegistro['!cols'] = [
+                { wch: 18 }, // Num. Preventivo
+                { wch: 14 }, // Data
+                { wch: 32 }, // Cliente
+                { wch: 16 }, // Imponibile
+                { wch: 14 }, // IVA
+                { wch: 18 }, // Totale Ivato
+                { wch: 15 }  // Stato
+            ];
+
+            XLSX.utils.book_append_sheet(libroCalcolo, foglioRegistro, "Registro Preventivi");
+            XLSX.writeFile(libroCalcolo, `Registro_Contabile_${new Date().getFullYear()}.xlsx`);
         }
     </script>
 </body>
