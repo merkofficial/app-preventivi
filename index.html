@@ -28,8 +28,8 @@
         .logo-title { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
         .logo-title span { color: var(--primary); }
         .container { padding: 15px; max-width: 1200px; margin: 0 auto; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { flex: 1; min-width: 70px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; text-align: center; }
         .tab-btn.active { background: var(--primary); color: var(--bg-dark); border-color: var(--primary); }
         .panel { display: none; }
         .panel.active { display: block; }
@@ -55,7 +55,7 @@
         .articolo-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 10px; font-size: 12px; font-weight: 700; }
         .action-edit { color: var(--primary); cursor: pointer; }
         .action-delete { color: var(--danger); cursor: pointer; }
-        .item-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; position: relative; }
+        .item-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; position: relative; margin-bottom: 15px; }
         .item-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .item-name { font-weight: 600; font-size: 15px; }
         .item-meta { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
@@ -99,17 +99,22 @@
         <div class="nav-tabs">
             <button class="tab-btn active" onclick="switchTab('tab-nuovo')" id="btn-tab-nuovo">+ Nuovo</button>
             <button class="tab-btn" onclick="switchTab('tab-archivio')" id="btn-tab-archivio">Archivio</button>
-            <button class="tab-btn" onclick="switchTab('tab-catalogo')">Listino</button>
+            <button class="tab-btn" onclick="switchTab('tab-clienti')" id="btn-tab-clienti">Clienti</button>
+            <button class="tab-btn" onclick="switchTab('tab-catalogo')" id="btn-tab-catalogo">Listino</button>
         </div>
 
         <div id="tab-nuovo" class="panel active">
             <div id="bannerModifica" class="edit-banner">MODALITÀ MODIFICA ATTIVA</div>
             <div class="card" id="form-preventivo-card">
-                <div class="card-title" id="titoloAnagrafica">Anagrafica Cliente</div>
+                <div class="card-title" id="titoloAnagrafica">Dati Preventivo</div>
                 <div class="form-grid">
-                    <div class="form-group"><label>Num. Preventivo</label><input type="text" id="prev_numero" placeholder="01/2026"></div>
+                    <div class="form-group"><label>Num. Preventivo</label><input type="text" id="prev_numero" placeholder="Generazione automatica..."></div>
                     <div class="form-group"><label>Data</label><input type="date" id="prev_data"></div>
-                    <div class="form-group full"><label>Cliente / Azienda</label><input type="text" id="prev_cliente"></div>
+                    <div class="form-group full">
+                        <label>Cliente / Azienda</label>
+                        <input type="text" id="prev_cliente" oninput="cercaClienteDb(this.value)" placeholder="Scrivi per cercare in anagrafica...">
+                        <div id="clienti-suggestions" class="suggestions"></div>
+                    </div>
                     <div class="form-group"><label>Telefono</label><input type="tel" id="prev_telefono"></div>
                     <div class="form-group"><label>Email</label><input type="email" id="prev_email"></div>
                     <div class="form-group full"><label>Indirizzo</label><input type="text" id="prev_indirizzo"></div>
@@ -118,7 +123,8 @@
                 <div class="card-title" style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">Aggiungi Voce</div>
                 <div class="form-grid">
                     <div class="form-group"><label>Codice Articolo</label><input type="text" id="art_codice" placeholder="Es. RE-10493"></div>
-                    <div class="form-group"><label>Descrizione</label>
+                    <div class="form-group"><label>Marchio / Produttore</label><input type="text" id="art_produttore" placeholder="Es. Bticino, Gewiss..."></div>
+                    <div class="form-group full"><label>Descrizione</label>
                         <input type="text" id="art_descrizione" oninput="cercaNelCatalogoDb(this.value)" placeholder="Cerca o scrivi...">
                         <div id="catalogo-suggestions" class="suggestions"></div>
                     </div>
@@ -156,6 +162,21 @@
 
         <div id="tab-archivio" class="panel">
             <div class="item-list" id="lista-preventivi-cloud"></div>
+        </div>
+
+        <div id="tab-clienti" class="panel">
+            <div class="card">
+                <div class="card-title">Aggiungi Nuovo Cliente</div>
+                <div class="form-group full" style="margin-bottom:12px;"><label>Nome / Azienda</label><input type="text" id="cli_nome" placeholder="Nome del cliente o dell'azienda"></div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Telefono</label><input type="tel" id="cli_telefono"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="cli_email"></div>
+                    <div class="form-group full"><label>Indirizzo Completo</label><input type="text" id="cli_indirizzo"></div>
+                </div>
+                <button class="btn" onclick="salvaCliente()" style="margin-top:15px;">💾 Salva Cliente</button>
+            </div>
+            <h4 style="margin-bottom:15px; font-size:14px;">Elenco Clienti</h4>
+            <div id="lista-clienti" class="item-list"></div>
         </div>
 
         <div id="tab-catalogo" class="panel">
@@ -208,14 +229,19 @@
         let articlesCurrentQuote = [];
         let idQuoteBeingEdited = null;
         let searchTimeout = null;
+        let searchTimeoutClienti = null;
 
         function checkLogin() {
             if(document.getElementById('loginPassword').value === APP_PASSWORD) {
                 document.getElementById('loginScreen').style.display = 'none';
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 document.getElementById('prev_data').valueAsDate = new Date();
+                
+                // Caricamenti iniziali
                 caricaPreventivi();
+                caricaClienti();
                 caricaUltimiCatalogo();
+                generaProssimoNumero(); // Genera il numero automatico al login
             } else alert("Password Errata");
         }
 
@@ -223,122 +249,217 @@
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            if(tabId === 'tab-nuovo') document.getElementById('btn-tab-nuovo').classList.add('active');
+            if(tabId === 'tab-nuovo') {
+                document.getElementById('btn-tab-nuovo').classList.add('active');
+                if(!idQuoteBeingEdited) generaProssimoNumero();
+            }
             else if(tabId === 'tab-archivio') { document.getElementById('btn-tab-archivio').classList.add('active'); caricaPreventivi(); }
-            else { document.querySelectorAll('.tab-btn')[2].classList.add('active'); caricaUltimiCatalogo(); }
+            else if(tabId === 'tab-clienti') { document.getElementById('btn-tab-clienti').classList.add('active'); caricaClienti(); }
+            else { document.getElementById('btn-tab-catalogo').classList.add('active'); caricaUltimiCatalogo(); }
+        }
+
+        // --- NUMERO PREVENTIVO AUTOMATICO ---
+        async function generaProssimoNumero() {
+            if(idQuoteBeingEdited) return; // Non cambia numero se sto modificando un preventivo vecchio
+            
+            const currentYear = new Date().getFullYear();
+            const { data } = await supabaseClient.from('preventivi').select('numero_preventivo');
+            
+            let maxNumber = 0;
+            if(data && data.length > 0) {
+                data.forEach(p => {
+                    if(p.numero_preventivo && p.numero_preventivo.includes('/' + currentYear)) {
+                        // Estrae il numero prima della barra (es: da "004/2026" estrae 4)
+                        const numStr = p.numero_preventivo.split('/')[0];
+                        const num = parseInt(numStr, 10);
+                        if(!isNaN(num) && num > maxNumber) {
+                            maxNumber = num;
+                        }
+                    }
+                });
+            }
+            
+            const nextNumber = maxNumber + 1;
+            const formattedNumber = String(nextNumber).padStart(3, '0') + '/' + currentYear;
+            document.getElementById('prev_numero').value = formattedNumber;
+        }
+
+        // --- GESTIONE ANAGRAFICA CLIENTI ---
+        async function salvaCliente() {
+            const nome = document.getElementById('cli_nome').value.trim();
+            const tel = document.getElementById('cli_telefono').value.trim();
+            const email = document.getElementById('cli_email').value.trim();
+            const ind = document.getElementById('cli_indirizzo').value.trim();
+
+            if(!nome) return alert("Il Nome o Azienda del cliente è obbligatorio!");
+
+            const { error } = await supabaseClient.from('clienti').insert([{
+                nome: nome, telefono: tel, email: email, indirizzo: ind
+            }]);
+
+            if(error) return alert("Errore di salvataggio! Hai creato la tabella 'clienti' su Supabase come ti ho spiegato?");
+
+            document.getElementById('cli_nome').value = '';
+            document.getElementById('cli_telefono').value = '';
+            document.getElementById('cli_email').value = '';
+            document.getElementById('cli_indirizzo').value = '';
+            caricaClienti();
+            alert("Cliente salvato con successo!");
+        }
+
+        async function caricaClienti() {
+            const { data, error } = await supabaseClient.from('clienti').select('*').order('nome', { ascending: true });
+            if(error) return; // Se la tabella non esiste ancora, evita di dare errori in console visibili
+
+            document.getElementById('lista-clienti').innerHTML = (data || []).map(c => `
+                <div class="item-card">
+                    <div class="item-row"><span class="item-name">${c.nome}</span></div>
+                    <div class="item-row"><span class="item-meta">${c.telefono || 'Nessun telefono'} ${c.email ? ' | '+c.email : ''}<br>${c.indirizzo || ''}</span></div>
+                    <button class="btn btn-danger btn-sm" style="margin-top:10px;" onclick="eliminaCliente(${c.id})">Elimina</button>
+                </div>
+            `).join('');
+        }
+
+        async function eliminaCliente(id) {
+            if(confirm("Sei sicuro di voler eliminare questo cliente dalla tua rubrica?")) {
+                await supabaseClient.from('clienti').delete().eq('id', id);
+                caricaClienti();
+            }
+        }
+
+        // Ricerca Cliente mentre scrivi nel preventivo
+        async function cercaClienteDb(v) {
+            const box = document.getElementById('clienti-suggestions');
+            if(!v || v.length < 2) { box.style.display = 'none'; return; }
+
+            clearTimeout(searchTimeoutClienti);
+            searchTimeoutClienti = setTimeout(async () => {
+                const { data } = await supabaseClient
+                    .from('clienti')
+                    .select('*')
+                    .ilike('nome', `%${v}%`)
+                    .limit(10);
+
+                if (data && data.length > 0) {
+                    box.innerHTML = data.map(c => `
+                        <div class="suggestion-item" onclick="selCli('${c.nome.replace(/'/g, "\\'")}', '${c.telefono ? c.telefono.replace(/'/g, "\\'") : ''}', '${c.email ? c.email.replace(/'/g, "\\'") : ''}', '${c.indirizzo ? c.indirizzo.replace(/'/g, "\\'") : ''}')">
+                            <b style="color:var(--primary);">${c.nome}</b> <span style="color:var(--text-muted); font-size:11px; float:right;">${c.telefono || ''}</span>
+                        </div>
+                    `).join('');
+                    box.style.display = 'block';
+                } else {
+                    box.style.display = 'none';
+                }
+            }, 300);
+        }
+
+        function selCli(n, t, e, i) {
+            document.getElementById('prev_cliente').value = n;
+            document.getElementById('prev_telefono').value = t;
+            document.getElementById('prev_email').value = e;
+            document.getElementById('prev_indirizzo').value = i;
+            document.getElementById('clienti-suggestions').style.display = 'none';
         }
 
         // --- IMPORTAZIONE MASSIVA METEL CON CHUNKING ---
-async function gestisciCaricamentoMetel(event) {
-    const file = event.target.files[0];
-    const brand = document.getElementById('metelBrand').value.trim().toUpperCase();
-    
-    if (!file) return;
-    if (!brand) {
-        alert("⚠️ Inserisci il nome del Brand / Produttore prima di caricare il file!");
-        event.target.value = ''; 
-        return;
-    }
-
-    const inputField = event.target;
-    inputField.disabled = true;
-    alert(`Lettura del file per il brand ${brand} in corso...`);
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        const text = e.target.result;
-        const righe = text.split(/\r?\n/);
-        const prodottiDaInserire = [];
-
-        for (let i = 0; i < righe.length; i++) {
-            const riga = righe[i];
-
-            // Controllo lunghezza minima per evitare righe corrotte
-            if (riga.length < 108 || riga.startsWith('TXT') || riga.startsWith('LISTINO')) continue;
-
-            // 1. CODICE ARTICOLO (Caratteri 0-16)
-            const codice = riga.substring(0, 16).trim();
-
-            // 2. DESCRIZIONE ARTICOLO (Caratteri 19-75) + PULIZIA NUMERI INIZIALI
-            let rawDescrizione = riga.substring(19, 75).trim();
+        async function gestisciCaricamentoMetel(event) {
+            const file = event.target.files[0];
+            const brand = document.getElementById('metelBrand').value.trim().toUpperCase();
             
-            // Rimuove numeri, spazi e trattini iniziali prima delle lettere (es: "1234 - CAVO" diventa "CAVO")
-            let descrizione = rawDescrizione.replace(/^[\d\s\-\.\,\/]+/g, '').trim();
-            
-            // Se la pulizia svuota la stringa (era solo di numeri), teniamo quella originale per sicurezza
-            if (!descrizione) descrizione = rawDescrizione;
+            if (!file) return;
+            if (!brand) {
+                alert("⚠️ Inserisci il nome del Brand / Produttore prima di caricare il file!");
+                event.target.value = ''; 
+                return;
+            }
 
-            // 3. PREZZO DI LISTINO (Tarato con virgola sul carattere 106)
-            // Estraiamo fino a 108 per prendere i due decimali dopo la virgola posizionata al 106
-            let rawPrezzo = riga.substring(102, 108).trim();
-            let prezzo = 0;
+            const inputField = event.target;
+            inputField.disabled = true;
+            alert(`Lettura del file per il brand ${brand} in corso...`);
 
-            if (rawPrezzo) {
-                rawPrezzo = rawPrezzo.replace(/\s+/g, '');
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                const righe = text.split(/\r?\n/);
+                const prodottiDaInserire = [];
 
-                if (rawPrezzo.includes(',') || rawPrezzo.includes('.')) {
-                    prezzo = parseFloat(rawPrezzo.replace(',', '.')) || 0;
-                } else {
-                    // Se non ha punti/virgole visibili ma la logica prevede decimali
-                    const prezzoIntero = parseInt(rawPrezzo, 10) || 0;
-                    prezzo = prezzoIntero / 100;
+                for (let i = 0; i < righe.length; i++) {
+                    const riga = righe[i];
+
+                    if (riga.length < 108 || riga.startsWith('TXT') || riga.startsWith('LISTINO')) continue;
+
+                    const codice = riga.substring(0, 16).trim();
+                    let rawDescrizione = riga.substring(19, 75).trim();
+                    let descrizione = rawDescrizione.replace(/^[\d\s\-\.\,\/]+/g, '').trim();
+                    if (!descrizione) descrizione = rawDescrizione;
+
+                    let rawPrezzo = riga.substring(102, 108).trim();
+                    let prezzo = 0;
+
+                    if (rawPrezzo) {
+                        rawPrezzo = rawPrezzo.replace(/\s+/g, '');
+
+                        if (rawPrezzo.includes(',') || rawPrezzo.includes('.')) {
+                            prezzo = parseFloat(rawPrezzo.replace(',', '.')) || 0;
+                        } else {
+                            const prezzoIntero = parseInt(rawPrezzo, 10) || 0;
+                            prezzo = prezzoIntero / 100;
+                        }
+                    }
+
+                    let um = riga.substring(61, 64).trim().toLowerCase();
+                    if (um === 'pzi' || um === 'pz' || um === 'cad' || um === '01') um = 'pz';
+                    else if (um === 'met' || um === 'mt') um = 'mt';
+                    else if (um === 'cnf' || um === 'cf') um = 'conf';
+                    else um = 'pz'; 
+
+                    if (codice && descrizione) {
+                        prodottiDaInserire.push({
+                            codice: codice,
+                            descrizione: descrizione,
+                            prezzo_unitario: prezzo,
+                            unita_misura: um,
+                            produttore: brand
+                        });
+                    }
                 }
-            }
 
-            // 4. UNITÀ DI MISURA (Caratteri 61-64)
-            let um = riga.substring(61, 64).trim().toLowerCase();
-            if (um === 'pzi' || um === 'pz' || um === 'cad' || um === '01') um = 'pz';
-            else if (um === 'met' || um === 'mt') um = 'mt';
-            else if (um === 'cnf' || um === 'cf') um = 'conf';
-            else um = 'pz'; 
+                if (prodottiDaInserire.length === 0) {
+                    alert("Nessun articolo valido trovato.");
+                    inputField.disabled = false;
+                    return;
+                }
 
-            if (codice && descrizione) {
-                prodottiDaInserire.push({
-                    codice: codice,
-                    descrizione: descrizione,
-                    prezzo_unitario: prezzo,
-                    unita_misura: um,
-                    produttore: brand
-                });
-            }
+                const CHUNK_SIZE = 500;
+                let inseritiConSuccesso = 0;
+                let haErrori = false;
+
+                for (let i = 0; i < prodottiDaInserire.length; i += CHUNK_SIZE) {
+                    const chunk = prodottiDaInserire.slice(i, i + CHUNK_SIZE);
+                    const { error } = await supabaseClient.from('catalogo_prodotti').insert(chunk);
+                    if (error) {
+                        console.error("Errore di inserimento:", error);
+                        haErrori = true;
+                        break;
+                    }
+                    inseritiConSuccesso += chunk.length;
+                }
+
+                inputField.disabled = false;
+                inputField.value = ''; 
+
+                if (!haErrori) {
+                    alert(`🎉 Successo! Caricati ${inseritiConSuccesso} articoli per il brand "${brand}" con descrizioni pulite.`);
+                } else {
+                    alert(`Errore durante il caricamento. Salvati solo ${inseritiConSuccesso} articoli.`);
+                }
+                
+                caricaUltimiCatalogo();
+            };
+            
+            reader.readAsText(file);
         }
 
-        if (prodottiDaInserire.length === 0) {
-            alert("Nessun articolo valido trovato.");
-            inputField.disabled = false;
-            return;
-        }
-
-        // INVIO A BLOCCHI SU SUPABASE (Chunk da 500)
-        const CHUNK_SIZE = 500;
-        let inseritiConSuccesso = 0;
-        let haErrori = false;
-
-        for (let i = 0; i < prodottiDaInserire.length; i += CHUNK_SIZE) {
-            const chunk = prodottiDaInserire.slice(i, i + CHUNK_SIZE);
-            const { error } = await supabaseClient.from('catalogo_prodotti').insert(chunk);
-            if (error) {
-                console.error("Errore di inserimento:", error);
-                haErrori = true;
-                break;
-            }
-            inseritiConSuccesso += chunk.length;
-        }
-
-        inputField.disabled = false;
-        inputField.value = ''; 
-
-        if (!haErrori) {
-            alert(`🎉 Successo! Caricati ${inseritiConSuccesso} articoli per il brand "${brand}" con descrizioni pulite.`);
-        } else {
-            alert(`Errore durante il caricamento. Salvati solo ${inseritiConSuccesso} articoli.`);
-        }
-        
-        caricaUltimiCatalogo();
-    };
-    
-    reader.readAsText(file);
-}
         // --- SALVATAGGIO SINGOLO ARTICOLO ---
         async function salvaInCatalogoSingolo() {
             const codice = document.getElementById('cat_codice').value.trim();
@@ -360,9 +481,8 @@ async function gestisciCaricamentoMetel(event) {
             caricaUltimiCatalogo();
         }
 
-        // --- GESTIONE VISUALIZZAZIONE CATALOGO (Solo ultimi 50) ---
+        // --- GESTIONE VISUALIZZAZIONE CATALOGO ---
         async function caricaUltimiCatalogo() {
-            // Limita a 50 per evitare di bloccare il browser con i listini Metel enormi
             const { data } = await supabaseClient.from('catalogo_prodotti').select('*').order('id', { ascending: false }).limit(50);
             
             document.getElementById('lista-catalogo-prodotti').innerHTML = (data || []).map(p => `
@@ -376,14 +496,13 @@ async function gestisciCaricamentoMetel(event) {
             `).join('');
         }
 
-        // --- RICERCA DINAMICA NEL DB (Per non scaricare tutto sul telefono) ---
+        // --- RICERCA DINAMICA NEL DB CATALOGO ---
         async function cercaNelCatalogoDb(v) {
             const box = document.getElementById('catalogo-suggestions');
-            if(!v || v.length < 2) { box.style.display = 'none'; return; } // Cerca solo dopo 2 lettere
+            if(!v || v.length < 2) { box.style.display = 'none'; return; }
 
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
-                // Ricerca sia nel codice che nella descrizione, limite 20 risultati
                 const { data, error } = await supabaseClient
                     .from('catalogo_prodotti')
                     .select('*')
@@ -392,7 +511,7 @@ async function gestisciCaricamentoMetel(event) {
 
                 if (data && data.length > 0) {
                     box.innerHTML = data.map(p => `
-                        <div class="suggestion-item" onclick="selCat('${p.codice ? p.codice.replace(/'/g, "\\'") : ''}', '${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario}, '${p.unita_misura || 'pz'}')">
+                        <div class="suggestion-item" onclick="selCat('${p.codice ? p.codice.replace(/'/g, "\\'") : ''}', '${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario}, '${p.unita_misura || 'pz'}', '${p.produttore ? p.produttore.replace(/'/g, "\\'") : ''}')">
                             ${p.codice ? `<b style="color:var(--primary);">[${p.codice}]</b> ` : ''}${p.descrizione} - ${p.prezzo_unitario.toFixed(2)}€ 
                             <span style="color:var(--text-muted); font-size:10px; float:right;">${p.produttore || ''}</span>
                         </div>
@@ -402,11 +521,12 @@ async function gestisciCaricamentoMetel(event) {
                     box.innerHTML = `<div class="suggestion-item">Nessun articolo trovato per "${v}"</div>`;
                     box.style.display = 'block';
                 }
-            }, 300); // Aspetta 300 millisecondi dopo che smetti di digitare per cercare
+            }, 300);
         }
 
-        function selCat(c, d, p, um) {
+        function selCat(c, d, p, um, prod) {
             document.getElementById('art_codice').value = c;
+            document.getElementById('art_produttore').value = prod;
             document.getElementById('art_descrizione').value = d; 
             document.getElementById('art_prezzo').value = p;
             document.getElementById('art_ricarico').value = 0; 
@@ -414,44 +534,43 @@ async function gestisciCaricamentoMetel(event) {
             document.getElementById('catalogo-suggestions').style.display = 'none';
         }
 
-        // --- GESTIONE PREVENTIVO ---
+        // --- GESTIONE PREVENTIVO VOCI ---
         function aggiungiArticoloInLista() {
-    const cod = document.getElementById('art_codice').value.trim();
-    const desc = document.getElementById('art_descrizione').value.trim();
-    const listinoBase = parseFloat(document.getElementById('art_prezzo').value);
-    
-    // Legge lo sconto inserito nella casella (ex ricarico)
-    const scontoCliente = parseFloat(document.getElementById('art_ricarico').value) || 0;
-    const qta = parseFloat(document.getElementById('art_qta').value);
-    const um = document.getElementById('art_um').value;
+            const cod = document.getElementById('art_codice').value.trim();
+            const prod = document.getElementById('art_produttore').value.trim();
+            const desc = document.getElementById('art_descrizione').value.trim();
+            const listinoBase = parseFloat(document.getElementById('art_prezzo').value);
+            
+            const scontoCliente = parseFloat(document.getElementById('art_ricarico').value) || 0;
+            const qta = parseFloat(document.getElementById('art_qta').value);
+            const um = document.getElementById('art_um').value;
 
-    if(!desc || isNaN(listinoBase)) return alert("Dati articolo incompleti");
+            if(!desc || isNaN(listinoBase)) return alert("Dati articolo incompleti");
 
-    // CALCOLO: Listino meno lo sconto inserito a mano
-    const unitarioVenditaNetto = listinoBase * (1 - (scontoCliente / 100));
+            const unitarioVenditaNetto = listinoBase * (1 - (scontoCliente / 100));
 
-    articlesCurrentQuote.push({ 
-        codice: cod || '',
-        descrizione: desc,
-        prezzo_unitario_netto: unitarioVenditaNetto,
-        quantita: qta,
-        unita_misura: um,
-        totale_netto: unitarioVenditaNetto * qta,
-        totale_ivato: (unitarioVenditaNetto * qta) * 1.22
-    });
+            articlesCurrentQuote.push({ 
+                codice: cod || '',
+                produttore: prod || '',
+                descrizione: desc,
+                prezzo_unitario_netto: unitarioVenditaNetto,
+                quantita: qta,
+                unita_misura: um,
+                totale_netto: unitarioVenditaNetto * qta,
+                totale_ivato: (unitarioVenditaNetto * qta) * 1.22
+            });
 
-    // Reset dei campi per il prossimo inserimento
-    document.getElementById('art_codice').value = ''; 
-    document.getElementById('art_descrizione').value = ''; 
-    document.getElementById('art_prezzo').value = ''; 
-    document.getElementById('art_qta').value = 1;
-    document.getElementById('art_um').value = 'pz';
-    
-    // Mantiene lo sconto che hai appena digitato per il prossimo articolo
-    document.getElementById('art_ricarico').value = scontoCliente;
-    
-    aggiornaInterfacciaArticoli();
-}
+            document.getElementById('art_codice').value = ''; 
+            document.getElementById('art_produttore').value = ''; 
+            document.getElementById('art_descrizione').value = ''; 
+            document.getElementById('art_prezzo').value = ''; 
+            document.getElementById('art_qta').value = 1;
+            document.getElementById('art_um').value = 'pz';
+            
+            document.getElementById('art_ricarico').value = scontoCliente;
+            
+            aggiornaInterfacciaArticoli();
+        }
 
         function aggiornaInterfacciaArticoli() {
             const container = document.getElementById('lista-articoli-correnti');
@@ -466,7 +585,7 @@ async function gestisciCaricamentoMetel(event) {
                 return `
                 <div class="articolo-row">
                     <div class="articolo-header">
-                        <span>${a.codice ? `<b>[${a.codice}]</b> ` : ''}${a.descrizione}</span>
+                        <span>${a.codice ? `<b>[${a.codice}]</b> ` : ''}${a.produttore ? `<span style="color:var(--text-muted); font-size:11px; text-transform:uppercase;">(${a.produttore})</span> ` : ''}${a.descrizione}</span>
                         <span style="color:var(--primary);">${tIvato.toFixed(2)} € (iva incl.)</span>
                     </div>
                     <div class="articolo-details">
@@ -486,6 +605,7 @@ async function gestisciCaricamentoMetel(event) {
         function modArt(i) { 
             const a = articlesCurrentQuote[i];
             document.getElementById('art_codice').value = a.codice || '';
+            document.getElementById('art_produttore').value = a.produttore || '';
             
             let cleanDesc = a.descrizione;
             if(cleanDesc.includes(" (+")) { cleanDesc = cleanDesc.split(" (+")[0]; }
@@ -529,6 +649,7 @@ async function gestisciCaricamentoMetel(event) {
             document.getElementById('btnSalvaPreventivo').innerText = "💾 Salva nel Cloud";
             document.getElementById('btnSalvaPreventivo').className = "btn";
             document.getElementById('btnAnnullaModifica').style.display = 'none';
+            generaProssimoNumero(); // Genera di nuovo il numero
             aggiornaInterfacciaArticoli();
         }
 
@@ -554,6 +675,14 @@ async function gestisciCaricamentoMetel(event) {
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        // --- ELIMINAZIONE PREVENTIVO ---
+        async function eliminaPreventivo(id) {
+            if(confirm("Sei sicuro di voler eliminare questo preventivo dall'archivio?")) {
+                await supabaseClient.from('preventivi').delete().eq('id', id);
+                caricaPreventivi();
+            }
         }
 
         async function cambiaStatoPreventivo(id, nuovoStato) {
@@ -597,7 +726,7 @@ async function gestisciCaricamentoMetel(event) {
                 return `
                 <tr>
                     <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; color:#1a1a1e;">
-                        ${a.codice ? `<span style="color:#4a5568; font-family:monospace; display:block; font-size:11px; margin-bottom:2px; font-weight:600;">Cod. ${a.codice}</span>` : ''}
+                        ${(a.codice || a.produttore) ? `<span style="color:#4a5568; font-family:monospace; display:block; font-size:11px; margin-bottom:2px; font-weight:600;">${a.codice ? `Cod. ${a.codice}` : ''}${a.codice && a.produttore ? ' - ' : ''}${a.produttore ? `${a.produttore.toUpperCase()}` : ''}</span>` : ''}
                         <b>${descrizioneCliente}</b>
                     </td>
                     <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#4a5568;">${a.quantita} ${um}</td>
