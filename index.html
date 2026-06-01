@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Preventivi">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <title>Gestione Preventivi Professionale</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #121214;
-            --bg-card: #1a1a1e;
-            --primary: #ccff00;
-            --text-main: #ffffff;
-            --text-muted: #a0a0a5;
-            --border: #2a2a30;
-            --danger: #ff4444;
-            --success: #00e676;
-            --warning: #ffb300;
+            --bg-dark: #121214; --bg-card: #1a1a1e; --primary: #ccff00;
+            --text-main: #ffffff; --text-muted: #a0a0a5; --border: #2a2a30;
+            --danger: #ff4444; --success: #00e676; --warning: #ffb300;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); padding-bottom: 40px; -webkit-tap-highlight-color: transparent; }
@@ -62,7 +63,7 @@
         .item-price { font-weight: 700; color: var(--primary); font-size: 16px; text-align: right; }
         .totale-box { background: #222226; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; border: 1px solid var(--border); }
         .totale-box h3 { color: var(--primary); font-size: 20px; margin-top: 5px; }
-        .suggestions { background: #222226; border: 1px solid var(--border); border-radius: 0 0 8px 8px; max-height: 150px; overflow-y: auto; display: none; position: absolute; top: 100%; left: 0; z-index: 999; width: 100%; }
+        .suggestions { background: #222226; border: 1px solid var(--border); border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; display: none; position: absolute; top: 100%; left: 0; z-index: 999; width: 100%; }
         .suggestion-item { padding: 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); color: #fff; }
         .suggestion-item:hover { background: var(--bg-card); }
         .edit-banner { background: #3a2f00; color: var(--warning); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 15px; display: none; text-align: center; }
@@ -118,13 +119,13 @@
                 <div class="form-grid">
                     <div class="form-group"><label>Codice Articolo</label><input type="text" id="art_codice" placeholder="Es. RE-10493"></div>
                     <div class="form-group"><label>Descrizione</label>
-                        <input type="text" id="art_descrizione" oninput="cercaNelCatalogo(this.value)" placeholder="Cerca o scrivi...">
+                        <input type="text" id="art_descrizione" oninput="cercaNelCatalogoDb(this.value)" placeholder="Cerca o scrivi...">
                         <div id="catalogo-suggestions" class="suggestions"></div>
                     </div>
                 </div>
                 <div class="form-grid-4" style="margin-top:10px;">
                     <div class="form-group"><label>Prezzo Netto (€)</label><input type="number" step="0.01" id="art_prezzo"></div>
-                    <div class="form-group"><label>Ricarico (%)</label><input type="number" id="art_ricarico" value="0"></div>
+                    <div class="form-group"><label>Sconto (%)</label><input type="number" id="art_ricarico" value="0"></div>
                     <div class="form-group"><label>Quantità</label><input type="number" step="0.1" id="art_qta" value="1"></div>
                     <div class="form-group"><label>U.M.</label>
                         <select id="art_um">
@@ -159,25 +160,38 @@
 
         <div id="tab-catalogo" class="panel">
             <div class="card">
-                <div class="card-title">Salva nel listino</div>
+                <div class="card-title">Upload Listino Massivo (METEL)</div>
+                <div class="form-grid" style="grid-template-columns: 1fr;">
+                    <div class="form-group">
+                        <label>Nome Brand / Produttore</label>
+                        <input type="text" id="metelBrand" placeholder="Es. Bticino, Gewiss, Vimar...">
+                    </div>
+                    <div class="form-group">
+                        <label>Carica File (.xlsx o .csv)</label>
+                        <input type="file" id="metelFile" accept=".txt,.xlsx,.csv" onchange="gestisciCaricamentoMetel(event)" style="cursor: pointer;">
+                        <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Colonne richieste: COD_ART, DESCRIZIONE, PREZZO, UM</p>
+                    </div>
+                </div>
+                
+                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+                
+                <div class="card-title">Aggiungi Singolo Articolo</div>
                 <div class="form-grid">
-                    <div class="form-group"><label>Codice Articolo</label><input type="text" id="cat_codice" placeholder="Es. MET-9938"></div>
+                    <div class="form-group"><label>Codice Articolo</label><input type="text" id="cat_codice" placeholder="Es. CA-001"></div>
                     <div class="form-group"><label>Descrizione</label><input type="text" id="cat_descrizione"></div>
                 </div>
-                <div class="form-grid">
+                <div class="form-grid-3">
+                    <div class="form-group"><label>Produttore</label><input type="text" id="cat_produttore" placeholder="Es. Generico"></div>
                     <div class="form-group"><label>Prezzo Base (€)</label><input type="number" step="0.01" id="cat_prezzo"></div>
                     <div class="form-group"><label>U.M.</label>
                         <select id="cat_um">
-                            <option value="pz">pz (pezzi)</option>
-                            <option value="mt">mt (metri)</option>
-                            <option value="ora">ora (ore)</option>
-                            <option value="corpo">corpo (a corpo)</option>
-                            <option value="conf">conf (confezione)</option>
+                            <option value="pz">pz</option><option value="mt">mt</option><option value="ora">ora</option><option value="corpo">corpo</option><option value="conf">conf</option>
                         </select>
                     </div>
                 </div>
-                <button class="btn" onclick="salvaInCatalogoListino()" style="margin-top:10px;">Salva nel Listino</button>
+                <button class="btn" onclick="salvaInCatalogoSingolo()" style="margin-top:10px;">Salva nel Listino</button>
             </div>
+            <h4 style="margin-bottom:15px; font-size:14px;">Ultimi 50 articoli inseriti</h4>
             <div id="lista-catalogo-prodotti" class="item-list"></div>
         </div>
     </div>
@@ -192,8 +206,8 @@
 
         let supabaseClient = null;
         let articlesCurrentQuote = [];
-        let localCatalogProducts = [];
         let idQuoteBeingEdited = null;
+        let searchTimeout = null;
 
         function checkLogin() {
             if(document.getElementById('loginPassword').value === APP_PASSWORD) {
@@ -201,7 +215,7 @@
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 document.getElementById('prev_data').valueAsDate = new Date();
                 caricaPreventivi();
-                caricaCatalogo();
+                caricaUltimiCatalogo();
             } else alert("Password Errata");
         }
 
@@ -211,33 +225,150 @@
             document.getElementById(tabId).classList.add('active');
             if(tabId === 'tab-nuovo') document.getElementById('btn-tab-nuovo').classList.add('active');
             else if(tabId === 'tab-archivio') { document.getElementById('btn-tab-archivio').classList.add('active'); caricaPreventivi(); }
-            else document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            else { document.querySelectorAll('.tab-btn')[2].classList.add('active'); caricaUltimiCatalogo(); }
         }
 
-        async function salvaInCatalogoListino() {
+        // --- IMPORTAZIONE MASSIVA METEL CON CHUNKING ---
+async function gestisciCaricamentoMetel(event) {
+    const file = event.target.files[0];
+    const brand = document.getElementById('metelBrand').value.trim().toUpperCase();
+    
+    if (!file) return;
+    if (!brand) {
+        alert("⚠️ Inserisci il nome del Brand / Produttore prima di caricare il file!");
+        event.target.value = ''; 
+        return;
+    }
+
+    const inputField = event.target;
+    inputField.disabled = true;
+    alert(`Lettura del file per il brand ${brand} in corso...`);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const text = e.target.result;
+        const righe = text.split(/\r?\n/);
+        const prodottiDaInserire = [];
+
+        for (let i = 0; i < righe.length; i++) {
+            const riga = righe[i];
+
+            // Controllo lunghezza minima per evitare righe corrotte
+            if (riga.length < 108 || riga.startsWith('TXT') || riga.startsWith('LISTINO')) continue;
+
+            // 1. CODICE ARTICOLO (Caratteri 0-16)
+            const codice = riga.substring(0, 16).trim();
+
+            // 2. DESCRIZIONE ARTICOLO (Caratteri 19-75) + PULIZIA NUMERI INIZIALI
+            let rawDescrizione = riga.substring(19, 75).trim();
+            
+            // Rimuove numeri, spazi e trattini iniziali prima delle lettere (es: "1234 - CAVO" diventa "CAVO")
+            let descrizione = rawDescrizione.replace(/^[\d\s\-\.\,\/]+/g, '').trim();
+            
+            // Se la pulizia svuota la stringa (era solo di numeri), teniamo quella originale per sicurezza
+            if (!descrizione) descrizione = rawDescrizione;
+
+            // 3. PREZZO DI LISTINO (Tarato con virgola sul carattere 106)
+            // Estraiamo fino a 108 per prendere i due decimali dopo la virgola posizionata al 106
+            let rawPrezzo = riga.substring(102, 108).trim();
+            let prezzo = 0;
+
+            if (rawPrezzo) {
+                rawPrezzo = rawPrezzo.replace(/\s+/g, '');
+
+                if (rawPrezzo.includes(',') || rawPrezzo.includes('.')) {
+                    prezzo = parseFloat(rawPrezzo.replace(',', '.')) || 0;
+                } else {
+                    // Se non ha punti/virgole visibili ma la logica prevede decimali
+                    const prezzoIntero = parseInt(rawPrezzo, 10) || 0;
+                    prezzo = prezzoIntero / 100;
+                }
+            }
+
+            // 4. UNITÀ DI MISURA (Caratteri 61-64)
+            let um = riga.substring(61, 64).trim().toLowerCase();
+            if (um === 'pzi' || um === 'pz' || um === 'cad' || um === '01') um = 'pz';
+            else if (um === 'met' || um === 'mt') um = 'mt';
+            else if (um === 'cnf' || um === 'cf') um = 'conf';
+            else um = 'pz'; 
+
+            if (codice && descrizione) {
+                prodottiDaInserire.push({
+                    codice: codice,
+                    descrizione: descrizione,
+                    prezzo_unitario: prezzo,
+                    unita_misura: um,
+                    produttore: brand
+                });
+            }
+        }
+
+        if (prodottiDaInserire.length === 0) {
+            alert("Nessun articolo valido trovato.");
+            inputField.disabled = false;
+            return;
+        }
+
+        // INVIO A BLOCCHI SU SUPABASE (Chunk da 500)
+        const CHUNK_SIZE = 500;
+        let inseritiConSuccesso = 0;
+        let haErrori = false;
+
+        for (let i = 0; i < prodottiDaInserire.length; i += CHUNK_SIZE) {
+            const chunk = prodottiDaInserire.slice(i, i + CHUNK_SIZE);
+            const { error } = await supabaseClient.from('catalogo_prodotti').insert(chunk);
+            if (error) {
+                console.error("Errore di inserimento:", error);
+                haErrori = true;
+                break;
+            }
+            inseritiConSuccesso += chunk.length;
+        }
+
+        inputField.disabled = false;
+        inputField.value = ''; 
+
+        if (!haErrori) {
+            alert(`🎉 Successo! Caricati ${inseritiConSuccesso} articoli per il brand "${brand}" con descrizioni pulite.`);
+        } else {
+            alert(`Errore durante il caricamento. Salvati solo ${inseritiConSuccesso} articoli.`);
+        }
+        
+        caricaUltimiCatalogo();
+    };
+    
+    reader.readAsText(file);
+}
+        // --- SALVATAGGIO SINGOLO ARTICOLO ---
+        async function salvaInCatalogoSingolo() {
             const codice = document.getElementById('cat_codice').value.trim();
             const desc = document.getElementById('cat_descrizione').value.trim();
             const prezzo = parseFloat(document.getElementById('cat_prezzo').value);
+            const prod = document.getElementById('cat_produttore').value.trim() || 'Generico';
+
             if(!desc || isNaN(prezzo)) return alert("Descrizione e Prezzo sono obbligatori");
             
             await supabaseClient.from('catalogo_prodotti').insert([{ 
                 codice: codice || null, 
                 descrizione: desc, 
                 prezzo_unitario: prezzo, 
-                unita_misura: document.getElementById('cat_um').value 
+                unita_misura: document.getElementById('cat_um').value,
+                produttore: prod
             }]);
             
-            document.getElementById('cat_codice').value = ''; document.getElementById('cat_descrizione').value = ''; document.getElementById('cat_prezzo').value = '';
-            caricaCatalogo();
+            document.getElementById('cat_codice').value = ''; document.getElementById('cat_descrizione').value = ''; document.getElementById('cat_prezzo').value = ''; document.getElementById('cat_produttore').value = '';
+            caricaUltimiCatalogo();
         }
 
-        async function caricaCatalogo() {
-            const { data } = await supabaseClient.from('catalogo_prodotti').select('*').order('descrizione');
-            localCatalogProducts = data || [];
-            document.getElementById('lista-catalogo-prodotti').innerHTML = localCatalogProducts.map(p => `
+        // --- GESTIONE VISUALIZZAZIONE CATALOGO (Solo ultimi 50) ---
+        async function caricaUltimiCatalogo() {
+            // Limita a 50 per evitare di bloccare il browser con i listini Metel enormi
+            const { data } = await supabaseClient.from('catalogo_prodotti').select('*').order('id', { ascending: false }).limit(50);
+            
+            document.getElementById('lista-catalogo-prodotti').innerHTML = (data || []).map(p => `
                 <div class="item-card">
                     <div class="item-row">
-                        <span class="item-name">${p.codice ? `[${p.codice}] ` : ''}${p.descrizione}</span>
+                        <span class="item-name">${p.codice ? `[${p.codice}] ` : ''}${p.descrizione} ${p.produttore ? `<span style="color:var(--text-muted); font-size:11px;">(${p.produttore})</span>` : ''}</span>
                         <span class="item-price">${p.prezzo_unitario.toFixed(2)} € / ${p.unita_misura || 'pz'}</span>
                     </div>
                     <button class="btn btn-danger btn-sm" onclick="eliminaDaCatalogo(${p.id})">Elimina</button>
@@ -245,19 +376,33 @@
             `).join('');
         }
 
-        function cercaNelCatalogo(v) {
+        // --- RICERCA DINAMICA NEL DB (Per non scaricare tutto sul telefono) ---
+        async function cercaNelCatalogoDb(v) {
             const box = document.getElementById('catalogo-suggestions');
-            if(!v) { box.style.display = 'none'; return; }
-            const fil = localCatalogProducts.filter(p => 
-                p.descrizione.toLowerCase().includes(v.toLowerCase()) || 
-                (p.codice && p.codice.toLowerCase().includes(v.toLowerCase()))
-            );
-            box.innerHTML = fil.map(p => `
-                <div class="suggestion-item" onclick="selCat('${p.codice ? p.codice.replace(/'/g, "\\'") : ''}', '${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario}, '${p.unita_misura || 'pz'}')">
-                    ${p.codice ? `<b>[${p.codice}]</b> ` : ''}${p.descrizione} - ${p.prezzo_unitario.toFixed(2)}€ (${p.unita_misura || 'pz'})
-                </div>
-            `).join('');
-            box.style.display = fil.length ? 'block' : 'none';
+            if(!v || v.length < 2) { box.style.display = 'none'; return; } // Cerca solo dopo 2 lettere
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                // Ricerca sia nel codice che nella descrizione, limite 20 risultati
+                const { data, error } = await supabaseClient
+                    .from('catalogo_prodotti')
+                    .select('*')
+                    .or(`descrizione.ilike.%${v}%,codice.ilike.%${v}%`)
+                    .limit(20);
+
+                if (data && data.length > 0) {
+                    box.innerHTML = data.map(p => `
+                        <div class="suggestion-item" onclick="selCat('${p.codice ? p.codice.replace(/'/g, "\\'") : ''}', '${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario}, '${p.unita_misura || 'pz'}')">
+                            ${p.codice ? `<b style="color:var(--primary);">[${p.codice}]</b> ` : ''}${p.descrizione} - ${p.prezzo_unitario.toFixed(2)}€ 
+                            <span style="color:var(--text-muted); font-size:10px; float:right;">${p.produttore || ''}</span>
+                        </div>
+                    `).join('');
+                    box.style.display = 'block';
+                } else {
+                    box.innerHTML = `<div class="suggestion-item">Nessun articolo trovato per "${v}"</div>`;
+                    box.style.display = 'block';
+                }
+            }, 300); // Aspetta 300 millisecondi dopo che smetti di digitare per cercare
         }
 
         function selCat(c, d, p, um) {
@@ -269,28 +414,44 @@
             document.getElementById('catalogo-suggestions').style.display = 'none';
         }
 
+        // --- GESTIONE PREVENTIVO ---
         function aggiungiArticoloInLista() {
-            const cod = document.getElementById('art_codice').value.trim();
-            const desc = document.getElementById('art_descrizione').value.trim();
-            const base = parseFloat(document.getElementById('art_prezzo').value);
-            const ricarico = parseFloat(document.getElementById('art_ricarico').value) || 0;
-            const qta = parseFloat(document.getElementById('art_qta').value);
-            const um = document.getElementById('art_um').value;
-            if(!desc || isNaN(base)) return alert("Dati articolo incompleti");
+    const cod = document.getElementById('art_codice').value.trim();
+    const desc = document.getElementById('art_descrizione').value.trim();
+    const listinoBase = parseFloat(document.getElementById('art_prezzo').value);
+    
+    // Legge lo sconto inserito nella casella (ex ricarico)
+    const scontoCliente = parseFloat(document.getElementById('art_ricarico').value) || 0;
+    const qta = parseFloat(document.getElementById('art_qta').value);
+    const um = document.getElementById('art_um').value;
 
-            const unitarioNetto = base * (1 + (ricarico / 100));
-            articlesCurrentQuote.push({ 
-                codice: cod || '',
-                descrizione: desc + (ricarico > 0 ? ` (+${ricarico}% ric.)` : ''),
-                prezzo_unitario_netto: unitarioNetto,
-                quantita: qta,
-                unita_misura: um,
-                totale_netto: unitarioNetto * qta,
-                totale_ivato: (unitarioNetto * qta) * 1.22
-            });
-            document.getElementById('art_codice').value = ''; document.getElementById('art_descrizione').value = ''; document.getElementById('art_prezzo').value = ''; document.getElementById('art_ricarico').value = 0; document.getElementById('art_um').value = 'pz';
-            aggiornaInterfacciaArticoli();
-        }
+    if(!desc || isNaN(listinoBase)) return alert("Dati articolo incompleti");
+
+    // CALCOLO: Listino meno lo sconto inserito a mano
+    const unitarioVenditaNetto = listinoBase * (1 - (scontoCliente / 100));
+
+    articlesCurrentQuote.push({ 
+        codice: cod || '',
+        descrizione: desc,
+        prezzo_unitario_netto: unitarioVenditaNetto,
+        quantita: qta,
+        unita_misura: um,
+        totale_netto: unitarioVenditaNetto * qta,
+        totale_ivato: (unitarioVenditaNetto * qta) * 1.22
+    });
+
+    // Reset dei campi per il prossimo inserimento
+    document.getElementById('art_codice').value = ''; 
+    document.getElementById('art_descrizione').value = ''; 
+    document.getElementById('art_prezzo').value = ''; 
+    document.getElementById('art_qta').value = 1;
+    document.getElementById('art_um').value = 'pz';
+    
+    // Mantiene lo sconto che hai appena digitato per il prossimo articolo
+    document.getElementById('art_ricarico').value = scontoCliente;
+    
+    aggiornaInterfacciaArticoli();
+}
 
         function aggiornaInterfacciaArticoli() {
             const container = document.getElementById('lista-articoli-correnti');
@@ -327,9 +488,7 @@
             document.getElementById('art_codice').value = a.codice || '';
             
             let cleanDesc = a.descrizione;
-            if(cleanDesc.includes(" (+")) {
-                cleanDesc = cleanDesc.split(" (+")[0];
-            }
+            if(cleanDesc.includes(" (+")) { cleanDesc = cleanDesc.split(" (+")[0]; }
             document.getElementById('art_descrizione').value = cleanDesc; 
             document.getElementById('art_prezzo').value = a.prezzo_unitario_netto || a.prezzo_unitario || 0; 
             document.getElementById('art_ricarico').value = 0; 
@@ -433,9 +592,7 @@
                 const um = a.unita_misura || 'pz';
                 
                 let descrizioneCliente = a.descrizione;
-                if(descrizioneCliente.includes(" (+")) {
-                    descrizioneCliente = descrizioneCliente.split(" (+")[0];
-                }
+                if(descrizioneCliente.includes(" (+")) { descrizioneCliente = descrizioneCliente.split(" (+")[0]; }
 
                 return `
                 <tr>
@@ -501,103 +658,37 @@
             window.print();
         }
 
-        async function eliminaPreventivo(id) { 
-            if(confirm("Sei sicuro di voler eliminare definitivamento questo preventivo?")) { 
-                await supabaseClient.from('preventivi').delete().eq('id', id); 
-                caricaPreventivi(); 
+        async function eliminaDaCatalogo(id) { 
+            if(confirm("Eliminare dal listino?")) { 
+                await supabaseClient.from('catalogo_prodotti').delete().eq('id', id); 
+                caricaUltimiCatalogo(); 
             } 
         }
-        
-        async function eliminaDaCatalogo(id) { if(confirm("Eliminare dal listino?")) { await supabaseClient.from('catalogo_prodotti').delete().eq('id', id); caricaCatalog(); } }
 
-        // FUNZIONE DI ESPORTAZIONE EXCEL CON FORMULE CORRETTE (SEPARATORE A VIRGOLA PER COMPATIBILITÀ INTERNA)
         async function esportaRegistroExcel() {
             const { data } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
-            
-            if (!data || data.length === 0) {
-                alert("Nessun dato da esportare nell'elenco!");
-                return;
-            }
-
-            // Calcoliamo le righe dinamiche per le formule
-            const rigaInizioDati = 6; 
-            const rigaFineDati = data.length + 5; 
-
-            // Prepariamo la matrice. NOTA: Usiamo la virgola ',' dentro COUNTIF perché l'interprete xlsx ragiona in inglese
+            if (!data || data.length === 0) return alert("Nessun dato da esportare!");
+            const rigaInizio = 6; const rigaFine = data.length + 5; 
             const matriceDati = [
                 ["REGISTRO AZIENDALE PREVENTIVI", "", "", "", "", "", ""],
-                ["Generato in data:", new Date().toLocaleDateString('it-IT'), "", "TASSO DI CONVERSIONE:", { f: `COUNTIF(G${rigaInizioDati}:G${rigaFineDati},"Approvato")/COUNTA(G${rigaInizioDati}:G${rigaFineDati})` }, "", ""],
-                [], 
-                [], 
-                ["NUM. PREVENTIVO", "DATA", "CLIENTE", "IMPONIBILE", "IVA 22%", "TOTALE IVATO", "STATO"]
+                ["Generato in data:", new Date().toLocaleDateString('it-IT'), "", "TASSO DI CONVERSIONE:", { f: `COUNTIF(G${rigaInizio}:G${rigaFine},"Approvato")/COUNTA(G${rigaInizio}:G${rigaFine})` }, "", ""],
+                [], [], ["NUM. PREVENTIVO", "DATA", "CLIENTE", "IMPONIBILE", "IVA 22%", "TOTALE IVATO", "STATO"]
             ];
-
-            // Inseriamo i dati del database
-            data.forEach(p => {
-                const imponibile = p.totale_imponibile || 0;
-                const ivato = p.totale_ivato || 0;
-                const iva = ivato - imponibile;
-
-                matriceDati.push([
-                    p.numero_preventivo,
-                    p.data_preventivo,
-                    p.cliente,
-                    imponibile,
-                    iva,
-                    ivato,
-                    p.stato
-                ]);
-            });
-
-            // Riga finale con le formule SUM dei totali (anche qui usiamo i due punti per il range e la sintassi pulita)
-            matriceDati.push([
-                "TOTALE GENERALE",
-                "",
-                "",
-                { f: `SUM(D${rigaInizioDati}:D${rigaFineDati})` },
-                { f: `SUM(E${rigaInizioDati}:E${rigaFineDati})` },
-                { f: `SUM(F${rigaInizioDati}:F${rigaFineDati})` },
-                ""
-            ]);
-
-            const libroCalcolo = XLSX.utils.book_new();
-            const foglioRegistro = XLSX.utils.aoa_to_sheet(matriceDati);
-
-            // Applichiamo i formati valuta (€) e percentuale (%)
-            const rangeFoglio = XLSX.utils.decode_range(foglioRegistro['!ref']);
-            for (let R = rangeFoglio.s.r; R <= rangeFoglio.e.r; ++R) {
-                for (let C = rangeFoglio.s.c; C <= rangeFoglio.e.c; ++C) {
-                    const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-                    if (!foglioRegistro[cellRef]) continue;
-
-                    // Formattiamo correttamente la cella della percentuale in alto (Riga 2, Colonna E)
-                    if (R === 1 && C === 4) {
-                        foglioRegistro[cellRef].z = '0.0%';
-                    }
-
-                    // Formattiamo le colonne dei prezzi (D, E, F)
-                    if (R >= (rigaInizioDati - 1) && (C === 3 || C === 4 || C === 5)) {
-                        if (typeof foglioRegistro[cellRef].f === 'undefined') {
-                            foglioRegistro[cellRef].t = 'n';
-                        }
-                        foglioRegistro[cellRef].z = '"€ "#,##0.00';
-                    }
+            data.forEach(p => { const imp = p.totale_imponibile||0; const ivaT = p.totale_ivato||0; matriceDati.push([p.numero_preventivo, p.data_preventivo, p.cliente, imp, ivaT-imp, ivaT, p.stato]); });
+            matriceDati.push(["TOTALE GENERALE", "", "", { f: `SUM(D${rigaInizio}:D${rigaFine})` }, { f: `SUM(E${rigaInizio}:E${rigaFine})` }, { f: `SUM(F${rigaInizio}:F${rigaFine})` }, ""]);
+            
+            const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(matriceDati);
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for(let R=range.s.r; R<=range.e.r; ++R){
+                for(let C=range.s.c; C<=range.e.c; ++C){
+                    const ref = XLSX.utils.encode_cell({r:R, c:C}); if(!ws[ref]) continue;
+                    if(R===1 && C===4) ws[ref].z = '0.0%';
+                    if(R>=(rigaInizio-1) && (C===3||C===4||C===5)) { if(typeof ws[ref].f==='undefined') ws[ref].t='n'; ws[ref].z = '"€ "#,##0.00'; }
                 }
             }
-
-            // Ottimizziamo la larghezza delle colonne
-            foglioRegistro['!cols'] = [
-                { wch: 18 }, // Num. Preventivo
-                { wch: 14 }, // Data
-                { wch: 32 }, // Cliente
-                { wch: 16 }, // Imponibile
-                { wch: 14 }, // IVA
-                { wch: 18 }, // Totale Ivato
-                { wch: 15 }  // Stato
-            ];
-
-            XLSX.utils.book_append_sheet(libroCalcolo, foglioRegistro, "Registro Preventivi");
-            XLSX.writeFile(libroCalcolo, `Registro_Contabile_${new Date().getFullYear()}.xlsx`);
+            ws['!cols'] = [{wch:18},{wch:14},{wch:32},{wch:16},{wch:14},{wch:18},{wch:15}];
+            XLSX.utils.book_append_sheet(wb, ws, "Registro");
+            XLSX.writeFile(wb, `Registro_${new Date().getFullYear()}.xlsx`);
         }
     </script>
 </body>
