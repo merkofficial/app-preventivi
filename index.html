@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Preventivi">
+    <link class="apple-touch-icon" href="icon-192.png">
+
+    <title>Gestione Preventivi Professionale</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #121214; --bg-card: #1a1a1e; --primary: #ccff00;
+            --text-main: #ffffff; --text-muted: #a0a0a5; --border: #2a2a30;
+            --danger: #ff4444; --success: #00e676; --warning: #ffb300;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); padding-bottom: 40px; -webkit-tap-highlight-color: transparent; }
+        .login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-dark); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-card { background: var(--bg-card); padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
+        header { background: var(--bg-card); padding: 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .logo-title { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .logo-title span { color: var(--primary); }
+        .container { padding: 15px; max-width: 1200px; margin: 0 auto; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { flex: 1; min-width: 80px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .tab-btn.active { background: var(--primary); color: var(--bg-dark); border-color: var(--primary); }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .form-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        @media(max-width: 600px) { .form-grid, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr; } }
+        .form-group { display: flex; flex-direction: column; gap: 5px; position: relative; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+        input, select, textarea { background: #222226; border: 1px solid var(--border); padding: 12px; border-radius: 8px; color: #fff; font-size: 14px; outline: none; width: 100%; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+        .btn { background: var(--primary); color: var(--bg-dark); border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; text-transform: uppercase; }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning-edit { background: var(--warning); color: var(--bg-dark); }
+        .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; width: auto; }
+        .articolo-row { background: #222226; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); position: relative; }
+        .articolo-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 5px; padding-right: 80px; }
+        .articolo-details { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+        .articolo-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 10px; font-size: 12px; font-weight: 700; }
+        .action-edit { color: var(--primary); cursor: pointer; }
+        .action-delete { color: var(--danger); cursor: pointer; }
+        .item-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; position: relative; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .item-name { font-weight: 600; font-size: 15px; }
+        .item-meta { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+        .item-meta a { color: var(--primary); text-decoration: none; }
+        .item-price { font-weight: 700; color: var(--primary); font-size: 16px; text-align: right; }
+        .totale-box { background: #222226; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: right; border: 1px solid var(--border); }
+        .totale-box h3 { color: var(--primary); font-size: 20px; margin-top: 5px; }
+        .suggestions { background: #222226; border: 1px solid var(--border); border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; display: none; position: absolute; top: 100%; left: 0; z-index: 999; width: 100%; }
+        .suggestion-item { padding: 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); color: #fff; }
+        .suggestion-item:hover { background: var(--bg-card); }
+        .edit-banner { background: #3a2f00; color: var(--warning); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 15px; display: none; text-align: center; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-attesa { background: #3a2f00; color: var(--warning); }
+        .badge-approvato { background: #003311; color: var(--success); }
+        .badge-rifiutato { background: #330000; color: var(--danger); }
+        
+        @media print {
+            body { background: #ffffff !important; color: #1a1a1e !important; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            header, .nav-tabs, .btn, .login-screen, #form-preventivo-card, .edit-banner, .totale-box button, .item-list { display: none !important; }
+            #print-preview-area { display: block !important; background: #ffffff !important; width: 100%; min-height: 100vh; }
+        }
+        #print-preview-area { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <h2 style="margin-bottom: 20px; font-weight:700; text-transform: uppercase;">GESTIONE<br><span style="color:var(--primary); font-size:14px;">PREVENTIVI & LISTINO</span></h2>
+            <input type="password" id="loginPassword" placeholder="Password" style="text-align:center; margin-bottom:15px; letter-spacing:4px;">
+            <button class="btn" onclick="checkLogin()">Entra</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo-title">GESTIONE <span>PREVENTIVI</span></div>
+        <button class="btn btn-secondary btn-sm" onclick="esportaRegistroExcel()" style="width:auto;">Excel 📊</button>
+    </header>
+
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-nuovo')" id="btn-tab-nuovo">+ Nuovo</button>
+            <button class="tab-btn" onclick="switchTab('tab-archivio')" id="btn-tab-archivio">Archivio</button>
+            <button class="tab-btn" onclick="switchTab('tab-catalogo')" id="btn-tab-catalogo">Listino</button>
+            <button class="tab-btn" onclick="switchTab('tab-clienti')" id="btn-tab-clienti">Clienti</button>
+        </div>
+
+        <div id="tab-nuovo" class="panel active">
+            <div id="bannerModifica" class="edit-banner">MODALITÀ MODIFICA ATTIVA</div>
+            <div class="card" id="form-preventivo-card">
+                <div class="card-title" id="titoloAnagrafica">Anagrafica Cliente</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Num. Preventivo</label><input type="text" id="prev_numero" placeholder="Es. 01-2026"></div>
+                    <div class="form-group"><label>Data</label><input type="date" id="prev_data"></div>
+                    <div class="form-group full">
+                        <label>Cliente / Azienda</label>
+                        <input type="text" id="prev_cliente" oninput="cercaClienteDb(this.value)" placeholder="Scrivi o cerca cliente salvato..." autocomplete="off">
+                        <div id="cliente-suggestions" class="suggestions"></div>
+                    </div>
+                    <div class="form-group"><label>Telefono</label><input type="tel" id="prev_telefono"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="prev_email"></div>
+                    <div class="form-group full"><label>Indirizzo (Compilato in automatico)</label><input type="text" id="prev_indirizzo" placeholder="Via, CAP, Città, Prov"></div>
+                </div>
+
+                <div class="card-title" style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">Aggiungi Voce</div>
+                <div class="form-grid-3">
+                    <div class="form-group"><label>Codice Articolo</label><input type="text" id="art_codice" placeholder="Es. RE-10493"></div>
+                    <div class="form-group"><label>Descrizione</label>
+                        <input type="text" id="art_descrizione" oninput="cercaNelCatalogoDb(this.value)" placeholder="Cerca o scrivi...">
+                        <div id="catalogo-suggestions" class="suggestions"></div>
+                    </div>
+                    <div class="form-group"><label>Brand / Produttore</label><input type="text" id="art_brand" placeholder="Es. Bticino"></div>
+                </div>
+                <div class="form-grid-4" style="margin-top:10px;">
+                    <div class="form-group"><label>Prezzo Netto (€)</label><input type="number" step="0.01" id="art_prezzo"></div>
+                    <div class="form-group"><label>Ricarico (%)</label><input type="number" id="art_ricarico" value="0"></div>
+                    <div class="form-group"><label>Quantità</label><input type="number" step="0.1" id="art_qta" value="1"></div>
+                    <div class="form-group"><label>U.M.</label>
+                        <select id="art_um">
+                            <option value="pz">pz (pezzi)</option>
+                            <option value="mt">mt (metri)</option>
+                            <option value="ora">ora (ore)</option>
+                            <option value="corpo">corpo (a corpo)</option>
+                            <option value="conf">conf (confezione)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="aggiungiArticoloInLista()">+ Aggiungi Voce</button>
+
+                <div class="card-title" style="margin-top:25px;">Lista Articoli</div>
+                <div id="lista-articoli-correnti"></div>
+
+                <div class="totale-box">
+                    <p style="font-size:13px; color:var(--text-muted);">Totale Imponibile: <span id="lbl-imponibile">0.00</span> €</p>
+                    <p style="font-size:13px; color:var(--text-muted);">IVA 22%: <span id="lbl-iva">0.00</span> €</p>
+                    <h3>TOTALE IVATO: <span id="lbl-totale">0.00</span> €</h3>
+                </div>
+
+                <div class="form-group full" style="margin-top:15px;"><label>Note</label><textarea id="prev_note" rows="2"></textarea></div>
+                <button class="btn" id="btnSalvaPreventivo" onclick="salvaPreventivoCloud()" style="margin-top:15px;">💾 Salva nel Cloud</button>
+                <button class="btn btn-secondary" id="btnAnnullaModifica" onclick="resetFormPreventivo()" style="margin-top:10px; display:none;">Annulla Modifica</button>
+            </div>
+        </div>
+
+        <div id="tab-archivio" class="panel">
+            <div class="item-list" id="lista-preventivi-cloud"></div>
+        </div>
+
+        <div id="tab-catalogo" class="panel">
+            <div class="card">
+                <div class="card-title">Upload Listino Massivo (METEL)</div>
+                <div class="form-grid" style="grid-template-columns: 1fr;">
+                    <div class="form-group">
+                        <label>Nome Brand / Produttore</label>
+                        <input type="text" id="metelBrand" placeholder="Es. Bticino, Gewiss, Vimar...">
+                    </div>
+                    <div class="form-group">
+                        <label>Carica File (.xlsx o .csv)</label>
+                        <input type="file" id="metelFile" accept=".csv, .xlsx" onchange="gestisciCaricamentoMetel(event)" style="cursor: pointer;">
+                        <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Colonne richieste: COD_ART, DESCRIZIONE, PREZZO, UM</p>
+                    </div>
+                </div>
+                
+                <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+                
+                <div class="card-title">Aggiungi Singolo Articolo</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Codice Articolo</label><input type="text" id="cat_codice" placeholder="Es. CA-001"></div>
+                    <div class="form-group"><label>Descrizione</label><input type="text" id="cat_descrizione"></div>
+                </div>
+                <div class="form-grid-3">
+                    <div class="form-group"><label>Produttore / Brand</label><input type="text" id="cat_produttore" placeholder="Es. Generico"></div>
+                    <div class="form-group"><label>Prezzo Base (€)</label><input type="number" step="0.01" id="cat_prezzo"></div>
+                    <div class="form-group"><label>U.M.</label>
+                        <select id="cat_um">
+                            <option value="pz">pz</option><option value="mt">mt</option><option value="ora">ora</option><option value="corpo">corpo</option><option value="conf">conf</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn" onclick="salvaInCatalogoSingolo()" style="margin-top:10px;">Salva nel Listino</button>
+
+                <div class="card-title" style="margin-top:30px; border-top:1px solid var(--border); padding-top:20px; color:var(--danger);">Sezione Rimozione Articoli</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Opzione A: Elimina intero Brand</label>
+                        <input type="text" id="eliminaBrandNome" placeholder="Es. BTICINO">
+                        <button class="btn btn-danger btn-sm" onclick="eliminaInteroBrandDalCatalogo()" style="margin-top:5px; width:100%;">🗑️ Rimuovi tutto il Brand</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Opzione B: Ricerca Mirata Codice da eliminare</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="cercaCodiceCanc" placeholder="Inserisci Codice o Descrizione...">
+                            <button class="btn btn-secondary btn-sm" onclick="avviaRicercaCancellazione()" style="width:auto;">Cerca 🔍</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="risultati-ricerca-cancellazione" style="margin-top:10px;"></div>
+            </div>
+            
+            <h4 style="margin-bottom:15px; font-size:14px;">Ultimi 50 articoli inseriti</h4>
+            <div id="lista-catalogo-prodotti" class="item-list"></div>
+        </div>
+
+        <div id="tab-clienti" class="panel">
+            <div class="card">
+                <div class="card-title">Aggiungi Nuovo Cliente Manualmente</div>
+                <div class="form-grid">
+                    <div class="form-group full"><label>Ragione Sociale / Nome Cliente</label><input type="text" id="cli_nome" placeholder="Es. Rossi S.r.l."></div>
+                    <div class="form-group"><label>Telefono</label><input type="tel" id="cli_telefono" placeholder="Es. 333123456"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="cli_email" placeholder="Es. info@azienda.it"></div>
+                </div>
+                <div class="form-grid-4">
+                    <div class="form-group full" style="grid-column: span 4;"><label>Via / Piazza</label><input type="text" id="cli_via" placeholder="Es. Via Roma 10"></div>
+                    <div class="form-group" style="grid-column: span 2;"><label>Città</label><input type="text" id="cli_citta" placeholder="Es. Milano"></div>
+                    <div class="form-group"><label>CAP</label><input type="text" id="cli_cap" placeholder="Es. 20100"></div>
+                    <div class="form-group"><label>Provincia (Sigla)</label><input type="text" id="cli_provincia" placeholder="Es. MI"></div>
+                </div>
+                <button class="btn" onclick="salvaClienteSingolo()" style="margin-top:15px;">💾 Salva Cliente</button>
+
+                <div class="card-title" style="margin-top:25px; border-top:1px solid var(--border); padding-top:15px;">Importazione Massiva Clienti (Excel)</div>
+                <div class="form-group">
+                    <label>Carica File (.xlsx o .csv)</label>
+                    <input type="file" id="clientiFile" accept=".csv, .xlsx" onchange="gestisciCaricamentoClientiMassivo(event)" style="cursor: pointer;">
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">Colonne richieste: NOME_AZIENDA, TELEFONO, EMAIL, VIA, CITTA, CAP, PROVINCIA</p>
+                </div>
+            </div>
+            <h4 style="margin-bottom:15px; font-size:14px;">Elenco Clienti in Anagrafica</h4>
+            <div id="lista-clienti-db" class="item-list"></div>
+        </div>
+    </div>
+
+    <div id="print-preview-area"></div>
+
+    <script>
+        // CONFIGURAZIONE
+        const SUPABASE_URL = "https://akyshoozwyxezvqvtncm.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_iYFqaixRwg08V60Aj2lc1g_BkDWK6II";
+        const APP_PASSWORD = "Eatsleepraverepeat1";
+
+        let supabaseClient = null;
+        let articlesCurrentQuote = [];
+        let idQuoteBeingEdited = null;
+        let searchTimeout = null;
+
+        function checkLogin() {
+            if(document.getElementById('loginPassword').value === APP_PASSWORD) {
+                document.getElementById('loginScreen').style.display = 'none';
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                document.getElementById('prev_data').valueAsDate = new Date();
+                caricaPreventivi();
+                caricaUltimiCatalogo();
+                caricaClienti();
+                generaNumeroPreventivo(); 
+            } else alert("Password Errata");
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active');
+            
+            if(tabId === 'tab-archivio') caricaPreventivi();
+            if(tabId === 'tab-catalogo') { caricaUltimiCatalogo(); document.getElementById('risultati-ricerca-cancellazione').innerHTML = ''; document.getElementById('cercaCodiceCanc').value = ''; }
+            if(tabId === 'tab-clienti') caricaClienti();
+        }
+
+        // --- AUTOGENERAZIONE NUMERO PREVENTIVO ---
+        async function generaNumeroPreventivo() {
+            if (idQuoteBeingEdited) return; 
+            
+            const annoCorrente = new Date().getFullYear();
+            const { data, error } = await supabaseClient.from('preventivi').select('numero_preventivo');
+            
+            let maxNum = 0;
+            if (data && data.length > 0) {
+                data.forEach(p => {
+                    const match = p.numero_preventivo.match(/(\d+)[\-\/](\d{4})/);
+                    if (match && parseInt(match[2]) === annoCorrente) {
+                        const num = parseInt(match[1]);
+                        if (num > maxNum) maxNum = num;
+                    }
+                });
+            }
+            
+            const prossimoNumero = (maxNum + 1).toString().padStart(2, '0');
+            document.getElementById('prev_numero').value = `${prossimoNumero}-${annoCorrente}`;
+        }
+
+        // --- IMPORTAZIONE MASSIVA METEL CON CHUNKING ---
+        async function gestisciCaricamentoMetel(event) {
+            const file = event.target.files[0];
+            const brand = document.getElementById('metelBrand').value.trim() || 'Generico';
+            
+            if (!file) return;
+
+            const inputFile = document.getElementById('metelFile');
+            inputFile.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet);
+
+                    if (json.length === 0) {
+                        alert("Il file Excel è vuoto.");
+                        inputFile.disabled = false;
+                        return;
+                    }
+
+                    alert(`Trovati ${json.length} articoli per il brand "${brand}". L'operazione avverrà in background. Attendi l'avviso di fine caricamento.`);
+
+                    const prodottiDaInserire = json.map(r => ({
+                        codice: r['COD_ART'] || r['CODICE'] || r['ARTICOLO'] || '',
+                        descrizione: r['DESCRIZIONE'] || r['DESC'] || 'N/A',
+                        prezzo_unitario: parseFloat(r['PREZZO'] || r['LISTINO'] || 0),
+                        unita_misura: r['UM'] || r['U.M.'] || 'pz',
+                        produttore: r['MARCHIO'] || r['PRODUTTORE'] || brand,
+                        famiglia_sconto: r['FAMIGLIA'] || r['SCONTO'] || ''
+                    }));
+
+                    const chunkSize = 500;
+                    let errori = 0;
+                    
+                    for (let i = 0; i < prodottiDaInserire.length; i += chunkSize) {
+                        const chunk = prodottiDaInserire.slice(i, i + chunkSize);
+                        const { error } = await supabaseClient.from('catalogo_prodotti').insert(chunk);
+                        if (error) errori++;
+                    }
+
+                    if(errori > 0) alert("Importazione terminata con qualche errore. Controlla il listino.");
+                    else alert("Listino METEL caricato perfettamente nel cloud!");
+                    
+                    caricaUltimiCatalogo();
+                    document.getElementById('metelBrand').value = '';
+                } catch (err) {
+                    alert("Si è verificato un errore: " + err.message);
+                } finally {
+                    inputFile.value = '';
+                    inputFile.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- SALVATAGGIO SINGOLO ARTICOLO ---
+        async function salvaInCatalogoSingolo() {
+            const codice = document.getElementById('cat_codice').value.trim();
+            const desc = document.getElementById('cat_descrizione').value.trim();
+            const prezzo = parseFloat(document.getElementById('cat_prezzo').value);
+            const prod = document.getElementById('cat_produttore').value.trim() || 'Generico';
+
+            if(!desc || isNaN(prezzo)) return alert("Descrizione e Prezzo sono obbligatori");
+            
+            await supabaseClient.from('catalogo_prodotti').insert([{ 
+                codice: codice || null, 
+                descrizione: desc, 
+                prezzo_unitario: prezzo, 
+                unita_misura: document.getElementById('cat_um').value,
+                produttore: prod
+            }]);
+            
+            document.getElementById('cat_codice').value = ''; document.getElementById('cat_descrizione').value = ''; document.getElementById('cat_prezzo').value = ''; document.getElementById('cat_produttore').value = '';
+            caricaUltimiCatalogo();
+        }
+
+        // --- GESTIONE VISUALIZZAZIONE CATALOGO (Ultimi 50) ---
+        async function caricaUltimiCatalogo() {
+            const { data } = await supabaseClient.from('catalogo_prodotti').select('*').order('id', { ascending: false }).limit(50);
+            document.getElementById('lista-catalogo-prodotti').innerHTML = (data || []).map(p => `
+                <div class="item-card">
+                    <div class="item-row">
+                        <span class="item-name">${p.codice ? `[${p.codice}] ` : ''}${p.descrizione} ${p.produttore ? `<span style="color:var(--text-muted); font-size:11px;">(${p.produttore})</span>` : ''}</span>
+                        <span class="item-price">${p.prezzo_unitario.toFixed(2)} € / ${p.unita_misura || 'pz'}</span>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="eliminaDaCatalogo(${p.id})">Elimina</button>
+                </div>
+            `).join('');
+        }
+
+        // --- CANCELLAZIONE MASSIVA PER BRAND ---
+        async function eliminaInteroBrandDalCatalogo() {
+            const brandDaCancellare = document.getElementById('eliminaBrandNome').value.trim();
+            if(!brandDaCancellare) return alert("Inserisci il nome del brand da rimuovere completamente.");
+
+            if(confirm(`⚠️ ATTENZIONE! Questa operazione eliminerà DEFINITIVAMENTE tutti gli articoli del brand "${brandDaCancellare}" dal database listino. Procedere?`)) {
+                const { error } = await supabaseClient.from('catalogo_prodotti').delete().ilike('produttore', brandDaCancellare);
+                if(error) alert("Errore: " + error.message);
+                else {
+                    alert(`Tutti gli articoli del brand "${brandDaCancellare}" rimossi.`);
+                    document.getElementById('eliminaBrandNome').value = '';
+                    caricaUltimiCatalogo();
+                }
+            }
+        }
+
+        // --- RICERCA ED ELIMINAZIONE MIRATA TRAMITE CODICE ---
+        async function avviaRicercaCancellazione() {
+            const valoreCercato = document.getElementById('cercaCodiceCanc').value.trim();
+            const contenitoreRisultati = document.getElementById('risultati-ricerca-cancellazione');
+            if(!valoreCercato) return alert("Inserisci un codice o una descrizione da cercare.");
+
+            const { data } = await supabaseClient
+                .from('catalogo_prodotti')
+                .select('*')
+                .or(`codice.ilike.%${valoreCercato}%,descrizione.ilike.%${valoreCercato}%`)
+                .limit(30);
+
+            if(data && data.length > 0) {
+                contenitoreRisultati.innerHTML = `<p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Articoli trovati nel listino (${data.length}):</p>` + data.map(p => `
+                    <div class="item-card" style="margin-bottom:8px; border-color:var(--danger);">
+                        <div class="item-row">
+                            <span class="item-name">${p.codice ? `<b>[${p.codice}]</b> ` : ''}${p.descrizione} <span style="color:var(--text-muted); font-size:11px;">(${p.produttore || 'Generico'})</span></span>
+                            <span class="item-price">${p.prezzo_unitario.toFixed(2)} €</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="eliminaDaCatalogoMirato(${p.id})">Elimina questo Articolo 🗑️</button>
+                    </div>
+                `).join('');
+            } else {
+                contenitoreRisultati.innerHTML = `<p style="font-size:13px; color:var(--danger);">Nessun articolo trovato per "${valoreCercato}".</p>`;
+            }
+        }
+
+        async function eliminaDaCatalogoMirato(id) {
+            if(confirm("Eliminare definitivamente questo specifico articolo dal listino cloud?")) {
+                await supabaseClient.from('catalogo_prodotti').delete().eq('id', id);
+                avviaRicercaCancellazione();
+                caricaUltimiCatalogo();
+            }
+        }
+
+        // --- RICERCA DINAMICA NEL DB PER COMPILAZIONE PREVENTIVO ---
+        async function cercaNelCatalogoDb(v) {
+            const box = document.getElementById('catalogo-suggestions');
+            if(!v || v.length < 2) { box.style.display = 'none'; return; }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const { data } = await supabaseClient
+                    .from('catalogo_prodotti')
+                    .select('*')
+                    .or(`descrizione.ilike.%${v}%,codice.ilike.%${v}%`)
+                    .limit(20);
+
+                if (data && data.length > 0) {
+                    box.innerHTML = data.map(p => `
+                        <div class="suggestion-item" onclick="selCat('${p.codice ? p.codice.replace(/'/g, "\\'") : ''}', '${p.descrizione.replace(/'/g, "\\'")}', ${p.prezzo_unitario}, '${p.unita_misura || 'pz'}', '${p.produttore ? p.produttore.replace(/'/g, "\\'") : ''}')">
+                            ${p.codice ? `<b style="color:var(--primary);">[${p.codice}]</b> ` : ''}${p.descrizione} - ${p.prezzo_unitario.toFixed(2)}€ 
+                            <span style="color:var(--text-muted); font-size:10px; float:right;">${p.produttore || ''}</span>
+                        </div>
+                    `).join('');
+                    box.style.display = 'block';
+                } else {
+                    box.innerHTML = `<div class="suggestion-item">Nessun articolo trovato per "${v}"</div>`;
+                    box.style.display = 'block';
+                }
+            }, 300);
+        }
+
+        function selCat(c, d, p, um, brand) {
+            document.getElementById('art_codice').value = c;
+            document.getElementById('art_descrizione').value = d; 
+            document.getElementById('art_prezzo').value = p;
+            document.getElementById('art_ricarico').value = 0; 
+            document.getElementById('art_um').value = um;
+            document.getElementById('art_brand').value = brand || '';
+            document.getElementById('catalogo-suggestions').style.display = 'none';
+        }
+
+        // --- IMPORTAZIONE MASSIVA CLIENTI (EXCEL) CON INDIRIZZO STRUTTURATO ---
+        async function gestisciCaricamentoClientiMassivo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const inputFile = document.getElementById('clientiFile');
+            inputFile.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet);
+
+                    if (json.length === 0) {
+                        alert("Il file Excel è vuoto.");
+                        inputFile.disabled = false;
+                        return;
+                    }
+
+                    alert(`Trovati ${json.length} record. Inizio l'importazione in background...`);
+
+                    const clientiDaInserire = json.map(r => ({
+                        nome_azienda: r['NOME_AZIENDA'] || r['NOME'] || r['RAGIONE_SOCIALE'] || r['CLIENTE'] || 'Senza Nome',
+                        telefono: (r['TELEFONO'] || r['TEL'] || '').toString(),
+                        email: r['EMAIL'] || r['MAIL'] || '',
+                        via: r['VIA'] || r['INDIRIZZO'] || '',
+                        citta: r['CITTA'] || r['CITTÀ'] || '',
+                        cap: (r['CAP'] || '').toString(),
+                        provincia: r['PROVINCIA'] || r['PROV'] || ''
+                    })).filter(c => c.nome_azienda !== 'Senza Nome');
+
+                    const chunkSize = 500;
+                    let errori = 0;
+                    
+                    for (let i = 0; i < clientiDaInserire.length; i += chunkSize) {
+                        const chunk = clientiDaInserire.slice(i, i + chunkSize);
+                        const { error } = await supabaseClient.from('clienti').insert(chunk);
+                        if (error) {
+                            console.error("Errore blocco:", error);
+                            errori++;
+                        }
+                    }
+
+                    if(errori > 0) alert("Importazione terminata con qualche errore. Controlla la lista.");
+                    else alert("Importazione clienti completata con successo!");
+                    
+                    caricaClienti();
+                } catch (err) {
+                    alert("Si è verificato un errore: " + err.message);
+                } finally {
+                    inputFile.value = '';
+                    inputFile.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- ANAGRAFICA CLIENTI: SALVATAGGIO SINGOLO E RICERCA (NUOVI CAMPI) ---
+        async function salvaClienteSingolo() {
+            const nome = document.getElementById('cli_nome').value.trim();
+            const tel = document.getElementById('cli_telefono').value.trim();
+            const email = document.getElementById('cli_email').value.trim();
+            const via = document.getElementById('cli_via').value.trim();
+            const citta = document.getElementById('cli_citta').value.trim();
+            const cap = document.getElementById('cli_cap').value.trim();
+            const prov = document.getElementById('cli_provincia').value.trim();
+
+            if(!nome) return alert("Il nome o la ragione sociale è obbligatoria.");
+
+            const { error } = await supabaseClient.from('clienti').insert([{ 
+                nome_azienda: nome, 
+                telefono: tel, 
+                email: email, 
+                via: via,
+                citta: citta,
+                cap: cap,
+                provincia: prov
+            }]);
+            
+            if (error) {
+                alert("ERRORE DI SALVATAGGIO CLOUD: " + error.message + "\n\nHai creato le nuove colonne (via, citta, cap, provincia) su Supabase?");
+                return;
+            }
+            
+            document.getElementById('cli_nome').value = ''; document.getElementById('cli_telefono').value = ''; document.getElementById('cli_email').value = '';
+            document.getElementById('cli_via').value = ''; document.getElementById('cli_citta').value = ''; document.getElementById('cli_cap').value = ''; document.getElementById('cli_provincia').value = '';
+            
+            caricaClienti();
+            alert("Cliente registrato correttamente in Anagrafica.");
+        }
+
+        async function caricaClienti() {
+            const { data, error } = await supabaseClient.from('clienti').select('*').order('nome_azienda', { ascending: true });
+            
+            if (error) {
+                document.getElementById('lista-clienti-db').innerHTML = `<p style="color:var(--danger); font-size:12px;">Errore caricamento. Hai aggiornato le colonne (via, citta, cap, provincia) su Supabase?</p>`;
+                return;
+            }
+
+            document.getElementById('lista-clienti-db').innerHTML = (data || []).map(c => {
+                // Costruisce la stringa indirizzo in base a cosa c'è
+                let strIndirizzo = [c.via, c.cap, c.citta, c.provincia ? `(${c.provincia})` : ''].filter(Boolean).join(" ");
+                
+                return `
+                <div class="item-card" style="margin-bottom:8px;">
+                    <div class="item-row"><span class="item-name">${c.nome_azienda}</span></div>
+                    <div class="item-meta">
+                        ${c.telefono ? `📞 Tel: ${c.telefono} | ` : ''} ${c.email ? `✉️ Email: ${c.email} <br>` : ''}
+                        ${strIndirizzo ? `📍 Indirizzo: ${strIndirizzo}` : ''}
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="eliminaCliente(${c.id})" style="margin-top:8px;">Elimina Cliente</button>
+                </div>`;
+            }).join('');
+        }
+
+        async function eliminaCliente(id) {
+            if(confirm("Rimuovere definitivamente questo profilo cliente dall'anagrafica?")) {
+                await supabaseClient.from('clienti').delete().eq('id', id);
+                caricaClienti();
+            }
+        }
+
+        async function cercaClienteDb(v) {
+            const box = document.getElementById('cliente-suggestions');
+            if(!v || v.length < 2) { box.style.display = 'none'; return; }
+
+            const { data, error } = await supabaseClient
+                .from('clienti')
+                .select('*')
+                .ilike('nome_azienda', `%${v}%`)
+                .limit(10);
+
+            if (error) return;
+
+            if(data && data.length > 0) {
+                box.innerHTML = data.map(c => {
+                    // Crea una stringa bella per l'autocompletamento nel preventivo
+                    const arrInd = [];
+                    if(c.via) arrInd.push(c.via);
+                    const cittaCompleta = `${c.cap || ''} ${c.citta || ''} ${c.provincia ? `(${c.provincia})` : ''}`.trim();
+                    if(cittaCompleta) arrInd.push(cittaCompleta);
+                    const indirizzoCompleto = arrInd.join(", ");
+
+                    return `
+                    <div class="suggestion-item" onclick="selCliente('${c.nome_azienda.replace(/'/g, "\\'")}', '${c.telefono || ''}', '${c.email || ''}', '${indirizzoCompleto.replace(/'/g, "\\'")}')">
+                        👤 <b>${c.nome_azienda}</b> ${c.email ? `(${c.email})` : ''}
+                    </div>`;
+                }).join('');
+                box.style.display = 'block';
+            } else {
+                box.innerHTML = `<div class="suggestion-item" style="color:var(--text-muted);">Nessun profilo salvato per "${v}". Sarà inserito manualmente.</div>`;
+                box.style.display = 'block';
+            }
+        }
+
+        function selCliente(nome, tel, email, ind) {
+            document.getElementById('prev_cliente').value = nome;
+            document.getElementById('prev_telefono').value = tel;
+            document.getElementById('prev_email').value = email;
+            document.getElementById('prev_indirizzo').value = ind;
+            document.getElementById('cliente-suggestions').style.display = 'none';
+        }
+
+        // --- GESTIONE COSTRUZIONE PREVENTIVO ---
+        function aggiungiArticoloInLista() {
+            const cod = document.getElementById('art_codice').value.trim();
+            const desc = document.getElementById('art_descrizione').value.trim();
+            const brand = document.getElementById('art_brand').value.trim();
+            const base = parseFloat(document.getElementById('art_prezzo').value);
+            const ricarico = parseFloat(document.getElementById('art_ricarico').value) || 0;
+            const qta = parseFloat(document.getElementById('art_qta').value);
+            const um = document.getElementById('art_um').value;
+            if(!desc || isNaN(base)) return alert("Dati articolo incompleti");
+
+            const unitarioNetto = base * (1 + (ricarico / 100));
+            articlesCurrentQuote.push({ 
+                codice: cod || '',
+                descrizione: desc + (ricarico > 0 ? ` (+${ricarico}% ric.)` : ''),
+                brand: brand || '',
+                prezzo_unitario_netto: unitarioNetto,
+                quantita: qta,
+                unita_misura: um,
+                totale_netto: unitarioNetto * qta,
+                totale_ivato: (unitarioNetto * qta) * 1.22
+            });
+            document.getElementById('art_codice').value = ''; document.getElementById('art_descrizione').value = ''; document.getElementById('art_brand').value = ''; document.getElementById('art_prezzo').value = ''; document.getElementById('art_ricarico').value = 0; document.getElementById('art_um').value = 'pz';
+            aggiornaInterfacciaArticoli();
+        }
+
+        function aggiornaInterfacciaArticoli() {
+            const container = document.getElementById('lista-articoli-correnti');
+            let imp = 0;
+            container.innerHTML = articlesCurrentQuote.map((a, i) => {
+                const pNetto = a.prezzo_unitario_netto || a.prezzo_unitario || 0;
+                const tNetto = a.totale_netto || (pNetto * a.quantita);
+                const tIvato = a.totale_ivato || (tNetto * 1.22);
+                const um = a.unita_misura || 'pz';
+                
+                imp += tNetto;
+                return `
+                <div class="articolo-row">
+                    <div class="articolo-header">
+                        <span>${a.codice ? `<b>[${a.codice}]</b> ` : ''}${a.brand ? `<span style="color:var(--text-muted); font-size:11px;">(${a.brand})</span> ` : ''}${a.descrizione}</span>
+                        <span style="color:var(--primary);">${tIvato.toFixed(2)} € (iva incl.)</span>
+                    </div>
+                    <div class="articolo-details">
+                        Qtà: ${a.quantita} ${um} | Netto Un.: ${pNetto.toFixed(2)}€ / ${um} | Ivato Un.: ${(pNetto * 1.22).toFixed(2)}€<br>
+                        <b>Totale Netto Riga: ${tNetto.toFixed(2)} €</b>
+                    </div>
+                    <div class="articolo-actions"><span class="action-edit" onclick="modArt(${i})">Mod ✏️</span><span class="action-delete" onclick="remArt(${i})">X</span></div>
+                </div>`;
+            }).join('');
+            document.getElementById('lbl-imponibile').innerText = imp.toFixed(2);
+            document.getElementById('lbl-iva').innerText = (imp * 0.22).toFixed(2);
+            document.getElementById('lbl-totale').innerText = (imp * 1.22).toFixed(2);
+        }
+
+        function remArt(i) { articlesCurrentQuote.splice(i, 1); aggiornaInterfacciaArticoli(); }
+        
+        function modArt(i) { 
+            const a = articlesCurrentQuote[i];
+            document.getElementById('art_codice').value = a.codice || '';
+            let cleanDesc = a.descrizione;
+            if(cleanDesc.includes(" (+")) { cleanDesc = cleanDesc.split(" (+")[0]; }
+            document.getElementById('art_descrizione').value = cleanDesc; 
+            document.getElementById('art_brand').value = a.brand || '';
+            document.getElementById('art_prezzo').value = a.prezzo_unitario_netto || a.prezzo_unitario || 0; 
+            document.getElementById('art_ricarico').value = 0; 
+            document.getElementById('art_qta').value = a.quantita;
+            document.getElementById('art_um').value = a.unita_misura || 'pz';
+            remArt(i);
+            document.getElementById('art_descrizione').focus();
+        }
+
+        async function salvaPreventivoCloud() {
+            const payload = {
+                numero_preventivo: document.getElementById('prev_numero').value,
+                data_preventivo: document.getElementById('prev_data').value,
+                cliente: document.getElementById('prev_cliente').value,
+                telefono: document.getElementById('prev_telefono').value,
+                email: document.getElementById('prev_email').value,
+                indirizzo: document.getElementById('prev_indirizzo').value,
+                articoli: articlesCurrentQuote,
+                totale_imponibile: parseFloat(document.getElementById('lbl-imponibile').innerText),
+                totale_ivato: parseFloat(document.getElementById('lbl-totale').innerText),
+                note: document.getElementById('prev_note').value,
+                stato: 'In attesa'
+            };
+            if(!payload.numero_preventivo || !payload.cliente) return alert("Numero e Cliente obbligatori");
+
+            if(idQuoteBeingEdited) await supabaseClient.from('preventivi').update(payload).eq('id', idQuoteBeingEdited);
+            else await supabaseClient.from('preventivi').insert([payload]);
+            
+            resetFormPreventivo(); switchTab('tab-archivio');
+        }
+
+        function resetFormPreventivo() {
+            idQuoteBeingEdited = null; articlesCurrentQuote = [];
+            document.querySelectorAll('#tab-nuovo input, #tab-nuovo textarea').forEach(i => i.value = '');
+            document.getElementById('prev_data').valueAsDate = new Date();
+            document.getElementById('bannerModifica').style.display = 'none';
+            document.getElementById('cliente-suggestions').style.display = 'none';
+            document.getElementById('titoloAnagrafica').innerText = "Anagrafica Cliente";
+            document.getElementById('btnSalvaPreventivo').innerText = "💾 Salva nel Cloud";
+            document.getElementById('btnSalvaPreventivo').className = "btn";
+            document.getElementById('btnAnnullaModifica').style.display = 'none';
+            aggiornaInterfacciaArticoli();
+            generaNumeroPreventivo();
+        }
+
+        async function caricaPreventivi() {
+            const { data } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
+            document.getElementById('lista-preventivi-cloud').innerHTML = (data || []).map(p => {
+                const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(p))));
+                return `
+                <div class="item-card">
+                    <div class="item-row"><span class="item-name">N° ${p.numero_preventivo} - ${p.cliente}</span><span class="badge badge-${p.stato.toLowerCase().replace(" ","-")}">${p.stato}</span></div>
+                    <div class="item-row"><span class="item-meta">Data: ${p.data_preventivo}<br>Netto: ${p.totale_imponibile.toFixed(2)}€</span><span class="item-price">Tot: ${p.totale_ivato.toFixed(2)}€</span></div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:5px; margin-top:10px; margin-bottom:5px;">
+                        <button class="btn btn-secondary btn-sm" onclick="startMod('${b64}')">Modifica ✏️</button>
+                        <select onchange="cambiaStatoPreventivo(${p.id}, this.value)" style="padding:5px; font-size:11px; background:#222226; border:1px solid var(--border); color:#fff; border-radius:6px;">
+                            <option value="In attesa" ${p.stato === 'In attesa' ? 'selected' : ''}>In attesa</option>
+                            <option value="Approvato" ${p.stato === 'Approvato' ? 'selected' : ''}>Approvato</option>
+                            <option value="Rifiutato" ${p.stato === 'Rifiutato' ? 'selected' : ''}>Rifiutato</option>
+                        </select>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:5px; margin-top:0;">
+                        <button class="btn btn-secondary btn-sm" onclick="printPdf('${b64}')">PDF 📄</button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminaPreventivo(${p.id})">Elimina 🗑️</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function cambiaStatoPreventivo(id, nuovoStato) {
+            await supabaseClient.from('preventivi').update({ stato: nuovoStato }).eq('id', id);
+            caricaPreventivi();
+        }
+
+        async function eliminaPreventivo(id) {
+            if(confirm("Eliminare definitivamente questo preventivo dall'archivio cloud?")) {
+                await supabaseClient.from('preventivi').delete().eq('id', id);
+                caricaPreventivi();
+            }
+        }
+
+        async function eliminaDaCatalogo(id) { 
+            if(confirm("Eliminare dal listino?")) { 
+                await supabaseClient.from('catalogo_prodotti').delete().eq('id', id); 
+                caricaUltimiCatalogo(); 
+            } 
+        }
+
+        window.startMod = function(s) {
+            const p = JSON.parse(decodeURIComponent(escape(atob(s))));
+            idQuoteBeingEdited = p.id;
+            document.getElementById('prev_numero').value = p.numero_preventivo;
+            document.getElementById('prev_data').value = p.data_preventivo;
+            document.getElementById('prev_cliente').value = p.cliente;
+            document.getElementById('prev_telefono').value = p.telefono || '';
+            document.getElementById('prev_email').value = p.email || '';
+            document.getElementById('prev_indirizzo').value = p.indirizzo || '';
+            document.getElementById('prev_note').value = p.note || '';
+            articlesCurrentQuote = p.articoli || [];
+            
+            document.getElementById('bannerModifica').style.display = 'block';
+            document.getElementById('titoloAnagrafica').innerText = "Modifica Preventivo Esistente";
+            document.getElementById('btnSalvaPreventivo').innerText = "Aggiorna 🔄";
+            document.getElementById('btnSalvaPreventivo').className = "btn btn-warning-edit";
+            document.getElementById('btnAnnullaModifica').style.display = 'block';
+            
+            aggiornaInterfacciaArticoli(); 
+            switchTab('tab-nuovo');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.printPdf = function(s) {
+            const p = JSON.parse(decodeURIComponent(escape(atob(s))));
+            const rows = (p.articoli || []).map(a => {
+                const pNetto = a.prezzo_unitario_netto || a.prezzo_unitario || 0;
+                const tIvato = a.totale_ivato || (pNetto * a.quantita * 1.22);
+                const um = a.unita_misura || 'pz';
+                
+                let descrizioneCliente = a.descrizione;
+                if(descrizioneCliente.includes(" (+")) { descrizioneCliente = descrizioneCliente.split(" (+")[0]; }
+
+                return `
+                <tr>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; color:#1a1a1e;">
+                        <div style="margin-bottom:3px; font-size:11px; font-weight:600;">
+                            ${a.codice ? `<span style="color:#4a5568; font-family:monospace; margin-right:8px;">Cod. ${a.codice}</span>` : ''}
+                            ${a.brand ? `<span style="color:#718096; text-transform:uppercase; background:#edf2f7; padding:2px 6px; border-radius:4px; font-size:10px;">${a.brand}</span>` : ''}
+                        </div>
+                        <b>${descrizioneCliente}</b>
+                    </td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#4a5568;">${a.quantita} ${um}</td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:right; color:#4a5568;">${pNetto.toFixed(2)} €</td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#4a5568;">22%</td>
+                    <td style="padding:12px 8px; border-bottom:1px solid #e2e8f0; text-align:right; color:#1a1a1e;"><b>${tIvato.toFixed(2)} €</b></td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('print-preview-area').innerHTML = `
+                <div style="padding:40px 30px; background:#ffffff; color:#1a1a1e; line-height:1.5; min-height:100vh; font-family:'Montserrat', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <div style="display:flex; justify-content:space-between; border-bottom:3px solid #1a1a1e; padding-bottom:15px; margin-bottom:25px;">
+                        <div>
+                            <h1 style="font-size:24px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#1a1a1e;">PREVENTIVO</h1>
+                            <p style="color:#4a5568; margin-top:4px;">N° <span style="color:#1a1a1e; font-weight:700;">${p.numero_preventivo}</span> del ${p.data_preventivo}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom:35px; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
+                        <p style="font-size:11px; color:#4a5568; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Spett.le Cliente / Azienda</p>
+                        <p style="font-size:16px; font-weight:600; color:#1a1a1e; margin-bottom:4px;">${p.cliente}</p>
+                        <p style="color:#4a5568; font-size:13px; line-height:1.4;">
+                            ${p.indirizzo ? `📍 ${p.indirizzo}<br>` : ''}
+                            ${p.telefono ? `📞 ${p.telefono} ` : ''} ${p.email ? `✉️ ${p.email}` : ''}
+                        </p>
+                    </div>
+
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:35px; font-size:13px;">
+                        <thead>
+                            <tr style="background:#f8fafc; border-bottom:2px solid #1a1a1e;">
+                                <th style="padding:12px 8px; text-align:left; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700;">Descrizione del Servizio</th>
+                                <th style="padding:12px 8px; text-align:center; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:70px;">Qtà</th>
+                                <th style="padding:12px 8px; text-align:right; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:100px;">Prezzo Un.</th>
+                                <th style="padding:12px 8px; text-align:center; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:60px;">IVA</th>
+                                <th style="padding:12px 8px; text-align:right; color:#1a1a1e; text-transform:uppercase; font-size:11px; font-weight:700; width:110px;">Totale</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:35px;">
+                        <div style="width:280px; text-align:right; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <p style="color:#4a5568; font-size:13px; margin-bottom:6px;">Totale Imponibile: <span style="color:#1a1a1e; font-weight:600;">${p.totale_imponibile.toFixed(2)} €</span></p>
+                            <p style="color:#4a5568; font-size:13px; margin-bottom:12px;">IVA 22%: <span style="color:#1a1a1e; font-weight:600;">${(p.totale_ivato - p.totale_imponibile).toFixed(2)} €</span></p>
+                            <div style="border-top:2px solid #1a1a1e; padding-top:12px;">
+                                <h2 style="font-size:13px; color:#4a5568; font-weight:700; text-transform:uppercase; margin-bottom:2px;">Totale dovuto</h2>
+                                <h2 style="font-size:24px; color:#1a1a1e; font-weight:700;"><span style="border-bottom:3px solid #ccff00; padding-bottom:2px;">${p.totale_ivato.toFixed(2)} €</span></h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${p.note ? `
+                    <div style="background:#f8fafc; padding:15px; border-radius:8px; border-left:4px solid #1a1a1e; font-size:13px; border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
+                        <b style="color:#1a1a1e; text-transform:uppercase; font-size:11px; display:block; margin-bottom:4px;">Note e Condizioni:</b>
+                        <span style="color:#4a5568; white-space: pre-wrap;">${p.note}</span>
+                    </div>` : ''}
+                </div>`;
+            window.print();
+        }
+
+        async function esportaRegistroExcel() {
+            const { data } = await supabaseClient.from('preventivi').select('*').order('created_at', { ascending: false });
+            if (!data || data.length === 0) return alert("Nessun dato da esportare!");
+            const rigaInizio = 6; const rigaFine = data.length + 5; 
+            const matriceDati = [
+                ["REGISTRO AZIENDALE PREVENTIVI", "", "", "", "", "", ""],
+                ["Generato in data:", new Date().toLocaleDateString('it-IT'), "", "TASSO DI CONVERSIONE:", { f: `COUNTIF(G${rigaInizio}:G${rigaFine},"Approvato")/COUNTA(G${rigaInizio}:G${rigaFine})` }, "", ""],
+                [], [], ["NUM. PREVENTIVO", "DATA", "CLIENTE", "IMPONIBILE", "IVA 22%", "TOTALE IVATO", "STATO"]
+            ];
+            data.forEach(p => { const imp = p.totale_imponibile||0; const ivaT = p.totale_ivato||0; matriceDati.push([p.numero_preventivo, p.data_preventivo, p.cliente, imp, ivaT-imp, ivaT, p.stato]); });
+            matriceDati.push(["TOTALE GENERALE", "", "", { f: `SUM(D${rigaInizio}:D${rigaFine})` }, { f: `SUM(E${rigaInizio}:E${rigaFine})` }, { f: `SUM(F${rigaInizio}:F${rigaFine})` }, ""]);
+            
+            const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(matriceDati);
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for(let R=range.s.r; R<=range.e.r; ++R){
+                for(let C=range.s.c; C<=range.e.c; ++C){
+                    const ref = XLSX.utils.encode_cell({r:R, c:C}); if(!ws[ref]) continue;
+                    if(R===1 && C===4) ws[ref].z = '0.0%';
+                    if(R>=(rigaInizio-1) && (C===3||C===4||C===5)) { if(typeof ws[ref].f==='undefined') ws[ref].t='n'; ws[ref].z = '"€ "#,##0.00'; }
+                }
+            }
+            ws['!cols'] = [{wch:18},{wch:14},{wch:32},{wch:16},{wch:14},{wch:18},{wch:15}];
+            XLSX.utils.book_append_sheet(wb, ws, "Registro");
+            XLSX.writeFile(wb, `Registro_${new Date().getFullYear()}.xlsx`);
+        }
+    </script>
+</body>
+</html>
